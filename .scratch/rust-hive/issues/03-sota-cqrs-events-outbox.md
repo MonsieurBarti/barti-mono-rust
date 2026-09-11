@@ -1,7 +1,7 @@
 # What is the current SOTA Rust approach to in-process CQRS, domain events, and a transactional outbox on Postgres?
 
 Type: research
-Status: claimed
+Status: resolved
 Label: wayfinder:research
 Blocked by:
 
@@ -18,3 +18,7 @@ Constraints:
 - Recommend a concrete crate set or a no-crate pattern. Pin majors.
 
 Asset: `.scratch/rust-hive/research/03-sota-cqrs-events-outbox.md`
+
+## Answer
+
+No CQRS bus crate. API-port traits plus composition root. Domain events stay in-cell. Integration events: producer outbox on the same sqlx 0.9.0 transaction as save; drain with FOR UPDATE SKIP LOCKED. Findings: [03-sota-cqrs-events-outbox.md](../research/03-sota-cqrs-events-outbox.md).

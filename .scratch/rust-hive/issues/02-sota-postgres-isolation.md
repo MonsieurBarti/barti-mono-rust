@@ -1,7 +1,7 @@
 # What is the current SOTA Rust Postgres stack for exclusive per-cell schemas and roles?
 
 Type: research
-Status: claimed
+Status: resolved
 Label: wayfinder:research
 Blocked by:
 
@@ -18,3 +18,7 @@ Constraints:
 - Recommend one stack and the isolation mechanism (schema + role, separate database, or other). Pin majors.
 
 Asset: `.scratch/rust-hive/research/02-sota-postgres-isolation.md`
+
+## Answer
+
+sqlx 0.9.0 + sqlx-cli 0.9.0. Schema-per-cell, LOGIN role per cell, PgPool per cell. One database. No SET ROLE. Findings: [02-sota-postgres-isolation.md](../research/02-sota-postgres-isolation.md).

@@ -1,7 +1,7 @@
 # How should a Cargo workspace express one crate per cell, a kernel crate, and a composition-root binary?
 
 Type: research
-Status: claimed
+Status: resolved
 Label: wayfinder:research
 Blocked by:
 
@@ -17,3 +17,7 @@ Constraints:
 - Recommend a workspace layout and a compile-time wall tool. Pin majors.
 
 Asset: `.scratch/rust-hive/research/05-sota-cargo-workspace-cells.md`
+
+## Answer
+
+Virtual workspace, edition 2024, rustc 1.98.1. One rlib per cell, kernel rlib, app bin. Hand-rolled DI. Wall: rustc privacy + cargo-deny 0.20.2. Findings: [05-sota-cargo-workspace-cells.md](../research/05-sota-cargo-workspace-cells.md).

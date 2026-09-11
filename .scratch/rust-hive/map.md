@@ -16,7 +16,11 @@ A locked `docs/architecture.md` and stack-pin ADR for a greenfield Rust hive-cel
 
 ## Decisions so far
 
-<!-- the index — one line per closed ticket -->
+- [What is the current SOTA Rust HTTP stack for a hive composition root?](issues/01-sota-http-stack.md) — axum 0.8.9 on tokio/hyper/tower; tower-http 0.6 not 0.7.
+- [What is the current SOTA Rust Postgres stack for exclusive per-cell schemas and roles?](issues/02-sota-postgres-isolation.md) — sqlx 0.9.0; schema + LOGIN role + PgPool per cell.
+- [What is the current SOTA Rust approach to in-process CQRS, domain events, and a transactional outbox on Postgres?](issues/03-sota-cqrs-events-outbox.md) — no bus crate; traits + outbox on the save transaction.
+- [What is the current SOTA Rust approach to Published Language validation at a cell edge?](issues/04-sota-cell-edge-validation.md) — serde + garde; VOs stay inside the hexagon.
+- [How should a Cargo workspace express one crate per cell, a kernel crate, and a composition-root binary?](issues/05-sota-cargo-workspace-cells.md) — crate-per-cell rlib, kernel rlib, app bin, cargo-deny wall.
 
 ## Not yet specified
 
