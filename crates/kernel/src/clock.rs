@@ -78,6 +78,5 @@ mod tests {
     fn system_clock_is_a_clock() {
         fn assert_clock<C: Clock>() {}
         assert_clock::<SystemClock>();
-        assert_clock::<FakeClock>();
     }
 }

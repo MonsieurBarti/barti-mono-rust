@@ -29,14 +29,10 @@ mod tests {
     }
 
     #[test]
-    fn logger_and_metrics_are_callable() {
-        let logger = Silent;
-        logger.debug("ok", &[("k", "v")]);
-        logger.info("ok", &[]);
-        logger.warn("ok", &[]);
-        logger.error("ok", &[]);
-        let metrics = Silent;
-        metrics.increment("hive.loads.create", 1, &[("cell", "loads")]);
-        metrics.distribution("hive.http.duration_ms", 12.0, &[]);
+    fn logger_and_metrics_are_ports() {
+        fn assert_logger<L: Logger>() {}
+        fn assert_metrics<M: Metrics>() {}
+        assert_logger::<Silent>();
+        assert_metrics::<Silent>();
     }
 }

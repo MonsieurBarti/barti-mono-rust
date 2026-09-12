@@ -11,27 +11,27 @@ pub struct Money {
 
 impl Money {
     pub fn create(amount: i64, currency: &str) -> Option<Self> {
-        if !(-MAX_AMOUNT..=MAX_AMOUNT).contains(&amount) {
-            return None;
-        }
-        Some(Self {
-            amount,
-            currency: intern(currency)?,
-        })
+        Self::from_interned(amount, intern(currency)?)
+    }
+
+    fn from_interned(amount: i64, currency: &'static str) -> Option<Self> {
+        (-MAX_AMOUNT..=MAX_AMOUNT)
+            .contains(&amount)
+            .then_some(Self { amount, currency })
     }
 
     pub fn add(&self, other: &Self) -> Option<Self> {
         if self.currency != other.currency {
             return None;
         }
-        Self::create(self.amount.checked_add(other.amount)?, self.currency)
+        Self::from_interned(self.amount.checked_add(other.amount)?, self.currency)
     }
 
     pub fn subtract(&self, other: &Self) -> Option<Self> {
         if self.currency != other.currency {
             return None;
         }
-        Self::create(self.amount.checked_sub(other.amount)?, self.currency)
+        Self::from_interned(self.amount.checked_sub(other.amount)?, self.currency)
     }
 
     pub fn compare(&self, other: &Self) -> Option<Ordering> {
@@ -52,16 +52,10 @@ impl Money {
             .iter()
             .map(|&w| i64::try_from(amount * i128::from(w) / total).ok())
             .collect::<Option<_>>()?;
-        let mut rem = self.amount - parts.iter().copied().sum::<i64>();
+        let rem = self.amount - parts.iter().copied().sum::<i64>();
         let step = rem.signum();
-        let mut i = 0;
-        while rem != 0 {
-            parts[i] += step;
-            rem -= step;
-            i += 1;
-            if i == parts.len() {
-                i = 0;
-            }
+        for part in parts.iter_mut().take(rem.unsigned_abs() as usize) {
+            *part += step;
         }
         Some(
             parts
@@ -187,6 +181,19 @@ mod tests {
                 (-2, "USD".to_owned()),
                 (-1, "USD".to_owned()),
             ]
+        );
+    }
+
+    #[test]
+    fn allocate_sends_remainder_to_first_positions_including_zero_weight() {
+        let parts = usd(5).allocate(&[0, 1, 1]).unwrap();
+        assert_eq!(
+            parts.iter().map(Money::to_plain).collect::<Vec<_>>(),
+            vec![
+                (1, "USD".to_owned()),
+                (2, "USD".to_owned()),
+                (2, "USD".to_owned()),
+            ],
         );
     }
 

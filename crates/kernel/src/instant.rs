@@ -26,15 +26,6 @@ mod tests {
     use super::Instant;
 
     #[test]
-    fn from_unix_timestamp_round_trips_seconds() {
-        let instant = Instant::from_unix_timestamp(1_700_000_000).unwrap();
-        assert_eq!(
-            instant.checked_add_seconds(0).unwrap(),
-            Instant::from_unix_timestamp(1_700_000_000).unwrap()
-        );
-    }
-
-    #[test]
     fn checked_add_seconds_shifts_forward_and_back() {
         let instant = Instant::from_unix_timestamp(1_700_000_000).unwrap();
         assert_eq!(

@@ -248,4 +248,9 @@ mod tests {
     fn unknown_code_has_no_fraction_digits() {
         assert_eq!(fraction_digits("ZZZ"), None);
     }
+
+    #[test]
+    fn currencies_are_sorted_by_code() {
+        assert!(super::CURRENCIES.windows(2).all(|w| w[0].0 < w[1].0));
+    }
 }
