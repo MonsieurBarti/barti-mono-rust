@@ -25,6 +25,8 @@ A booting Cargo workspace you can run locally against Postgres. Kernel rlib, app
 - [Which Load fields does the first POST require?](issues/03-create-load-fields.md) — body `shipperId` + two typed stops; mint Load/Stop ids and `createdAt`; 201 is the Load; `ActorId` stored, not JSON.
 - [Scaffold the Cargo workspace](issues/04-workspace-skeleton.md) — virtual workspace `kernel` / `loads` / `app`; rustc 1.98.1, edition 2024; cargo-deny `wrappers = ["app"]` on `loads`; `compose.yaml` plus `postgres/init.sql`; `.env.example`.
 - [Export the kernel crate](issues/05-kernel-exports.md) — chapter 15 export set; crate dep `time` 0.3.55; ISO 4217 list-one 2026-01-01.
+- [Boot app migrate, serve, telemetry, and HTTP](issues/06-app-migrate-serve.md) — `app migrate` / `app serve` split by DSN; `loads._sqlx_migrations` via app `sqlx.toml`; `telemetry.rs` owns tracing plus optional OTLP; health, correlation echo, and 401 problem+json on `127.0.0.1:8080`.
+
 
 
 ## Not yet specified
