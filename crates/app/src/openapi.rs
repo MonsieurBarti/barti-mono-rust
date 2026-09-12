@@ -13,7 +13,27 @@ pub(crate) struct AppApi;
 pub(crate) fn merge(loads: OpenApiRouter) -> OpenApiRouter {
     let mut router = OpenApiRouter::with_openapi(AppApi::openapi()).merge(loads);
     inject_401_500(router.get_openapi_mut());
+    strip_empty_info(router.get_openapi_mut());
     router
+}
+
+fn strip_empty_info(openapi: &mut OpenApiDoc) {
+    if openapi
+        .info
+        .license
+        .as_ref()
+        .is_some_and(|license| license.name.is_empty())
+    {
+        openapi.info.license = None;
+    }
+    if openapi
+        .info
+        .description
+        .as_ref()
+        .is_some_and(String::is_empty)
+    {
+        openapi.info.description = None;
+    }
 }
 
 fn problem_response(description: &'static str) -> RefOr<Response> {
@@ -130,6 +150,8 @@ mod tests {
         let v: serde_json::Value = serde_json::from_str(&json).unwrap();
         assert_eq!(v["info"]["title"], "Barti Freight");
         assert_eq!(v["info"]["version"], "0.1.0");
+        assert!(v["info"].get("license").is_none());
+        assert!(v["info"].get("description").is_none());
         assert_eq!(v["servers"][0]["url"], "/");
         assert!(v["paths"].get("/health").is_none());
         let post = &v["paths"]["/loads"]["post"];
