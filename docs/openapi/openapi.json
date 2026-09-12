@@ -2,10 +2,6 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Barti Freight",
-    "description": "",
-    "license": {
-      "name": ""
-    },
     "version": "0.1.0"
   },
   "servers": [

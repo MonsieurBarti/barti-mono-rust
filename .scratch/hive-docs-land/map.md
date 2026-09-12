@@ -32,6 +32,8 @@ The repo matches [the locked spec](../hive-docs/spec.md). Handbook files, glossa
 - [Inject 401 and 500 after merge](issues/08-inject-401-500.md) — walk merged `OpenApi`; `or_insert` 401 and 500 with `$ref` `Problem`.
 - [Prove OpenAPI coverage and Problem identity](issues/09-openapi-coverage-tests.md) — two nextest tests; cell tags merge; Problem JSON identical before merge.
 - [Add scripts/check-docs](issues/10-check-docs-script.md) — path equality over cell crates; closed `docs/handbook/` and `docs/openapi/` trees; no CI step.
+- [Wire the documentation CI gates](issues/11-wire-docs-ci.md) — five docs steps on `ci`; protect-main requires `ci` and `check`.
+- [Write the cell-docs skill and wire ship-ticket](issues/12-cell-docs-skill.md) — model-invoked `.omp/skills/cell-docs/`; ship-ticket step 4; effort-short `docs-land`.
 
 
 

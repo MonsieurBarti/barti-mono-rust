@@ -24,6 +24,32 @@ jobs:
       - run: cargo clippy --workspace --all-targets -- -D warnings
       - run: cargo deny check bans
       - run: cargo nextest run --workspace
+      - run: scripts/check-docs
+      - run: cargo run -p app --bin openapi
+      - run: git diff --exit-code -- docs/openapi/openapi.json
+      - uses: oasdiff/oasdiff-action/validate@v0.1.15
+        with:
+          spec: docs/openapi/openapi.json
+      - id: base_openapi
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --depth=1 origin "${{ github.base_ref }}"
+          if git cat-file -e "origin/${{ github.base_ref }}:docs/openapi/openapi.json" 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.base_openapi.outputs.exists == 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0.1.15
+        with:
+          base: origin/${{ github.base_ref }}:docs/openapi/openapi.json
+          revision: HEAD:docs/openapi/openapi.json
+          fail-on: ERR
+          review: false
+      - uses: lycheeverse/lychee-action@v2.9.0
+        with:
+          args: --offline --include-fragments --no-progress docs/handbook/**/*.md docs/architecture.md docs/adr/**/*.md CONTEXT.md CONTEXT-MAP.md crates/cells/**/CONTEXT.md
+          lycheeVersion: v0.24.2
       - run: docker compose up -d --wait
       - run: scripts/test-db.sh
       - run: scripts/coverage.sh
