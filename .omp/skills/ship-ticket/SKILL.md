@@ -77,11 +77,13 @@ Done when the ticket shows `Status: resolved` and the map line exists.
 
 ## 8. Push
 
-Commit with `feat:`, `fix:`, or `chore:`. Then:
+Commit with `feat:`, `fix:`, or `chore:`. Fill `.github/PULL_REQUEST_TEMPLATE.md`. Attack campaign is `.scratch/attack-plan.md` with statuses, or `local-attack: green (no surface)`. Then:
 
 ```
 git push -u origin HEAD
-gh pr create --base main --title "<conventional title>" --body "<ticket link, answer gist, gate summary, warns accepted>"
+gh pr create --base main --title "<conventional title>" --body-file <filled template>
 ```
 
-Done when the PR URL exists. Leave merge to the code owner.
+Delete `.scratch/attack-plan.md`.
+
+Done when the PR URL exists and the body has the attack campaign. Leave merge to the code owner.

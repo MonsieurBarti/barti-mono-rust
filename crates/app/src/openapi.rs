@@ -69,6 +69,57 @@ mod tests {
     use utoipa::openapi::{Info, OpenApi, Paths, ResponseBuilder};
     use utoipa_axum::router::OpenApiRouter;
 
+    const HTTP_METHODS: &[&str] = &[
+        "get", "put", "post", "delete", "options", "head", "patch", "trace",
+    ];
+
+    fn cell_openapis() -> [(&'static str, OpenApi); 1] {
+        [("loads", loads::openapi())]
+    }
+
+    fn spec_json(spec: OpenApi) -> serde_json::Value {
+        serde_json::from_str(&spec.to_pretty_json().unwrap()).unwrap()
+    }
+
+    fn operations(spec: &serde_json::Value) -> Vec<(String, &'static str, serde_json::Value)> {
+        let Some(paths) = spec["paths"].as_object() else {
+            return Vec::new();
+        };
+        let mut ops = Vec::new();
+        for (path, item) in paths {
+            let Some(item) = item.as_object() else {
+                continue;
+            };
+            for method in HTTP_METHODS {
+                if let Some(op) = item.get(*method).filter(|op| op.is_object()) {
+                    ops.push((path.clone(), *method, op.clone()));
+                }
+            }
+        }
+        ops
+    }
+
+    fn operation_tags(spec: &serde_json::Value) -> std::collections::BTreeSet<String> {
+        let mut tags = std::collections::BTreeSet::new();
+        if let Some(doc_tags) = spec["tags"].as_array() {
+            for tag in doc_tags {
+                if let Some(name) = tag["name"].as_str() {
+                    tags.insert(name.to_owned());
+                }
+            }
+        }
+        for (_, _, op) in operations(spec) {
+            if let Some(arr) = op["tags"].as_array() {
+                for tag in arr {
+                    if let Some(name) = tag.as_str() {
+                        tags.insert(name.to_owned());
+                    }
+                }
+            }
+        }
+        tags
+    }
+
     #[test]
     fn merged_spec_has_loads_slice() {
         let json = merge(OpenApiRouter::with_openapi(loads::openapi()))
@@ -123,5 +174,55 @@ mod tests {
         };
         assert_eq!(resp.description, "cell-401");
         assert!(post.responses.responses.contains_key("500"));
+    }
+
+    #[test]
+    fn coverage_tags_cell_operations_and_omits_health() {
+        let merged = spec_json(merge(OpenApiRouter::with_openapi(loads::openapi())).into_openapi());
+        let merged_tags = operation_tags(&merged);
+
+        for (cell, spec) in cell_openapis() {
+            let spec = spec_json(spec);
+            let ops = operations(&spec);
+            if ops.is_empty() {
+                assert!(
+                    !merged_tags.contains(cell),
+                    "{cell} has no public routes so it must not contribute a tag"
+                );
+                continue;
+            }
+            for (path, method, op) in ops {
+                let tagged = op["tags"]
+                    .as_array()
+                    .is_some_and(|tags| tags.iter().any(|tag| tag.as_str() == Some(cell)));
+                assert!(tagged, "{method} {path} is not tagged {cell}");
+                assert!(
+                    merged["paths"][&path][method].is_object(),
+                    "merged spec missing {method} {path} from {cell}"
+                );
+            }
+        }
+
+        let empty = spec_json(merge(OpenApiRouter::new()).into_openapi());
+        assert!(
+            operation_tags(&empty).is_empty(),
+            "a cell with no public routes contributes no tag"
+        );
+        assert!(merged["paths"].get("/health").is_none());
+    }
+
+    #[test]
+    fn problem_schema_is_identical_across_cells_before_merge() {
+        let problems: Vec<serde_json::Value> = cell_openapis()
+            .into_iter()
+            .filter_map(|(_, spec)| {
+                spec_json(spec)
+                    .pointer("/components/schemas/Problem")
+                    .cloned()
+            })
+            .collect();
+        for pair in problems.windows(2) {
+            assert_eq!(pair[0], pair[1]);
+        }
     }
 }

@@ -30,6 +30,8 @@ The repo matches [the locked spec](../hive-docs/spec.md). Handbook files, glossa
 - [Emit OpenAPI from loads presentation](issues/06-emit-openapi-from-loads.md) — `loads` `router` returns `OpenApiRouter`; PL `ToSchema`; `routes!(create_load)`; paste RUSTSEC ignored.
 - [Merge OpenAPI in app and write the document](issues/07-merge-and-write-openapi.md) — `app` merges from `AppApi`; extra bin writes `docs/openapi/openapi.json`.
 - [Inject 401 and 500 after merge](issues/08-inject-401-500.md) — walk merged `OpenApi`; `or_insert` 401 and 500 with `$ref` `Problem`.
+- [Prove OpenAPI coverage and Problem identity](issues/09-openapi-coverage-tests.md) — two nextest tests; cell tags merge; Problem JSON identical before merge.
+
 
 
 ## Not yet specified
