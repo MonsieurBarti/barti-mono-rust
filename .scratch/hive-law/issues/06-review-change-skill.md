@@ -22,7 +22,7 @@ Acceptance: both files exist with valid frontmatter; `/review-change` appears in
 
 ## Answer
 
-`.omp/skills/review-change/SKILL.md` and `.omp/prompts/review-change.md`. Skill has `name` and `description`. Prompt has `description` and `$ARGUMENTS`. Empty target stops. Prompt shape matches naboo `review-fintech`: specialists and judge are `task` with `schemaMode: "strict"`.
+`.omp/skills/review-change/SKILL.md` and `.omp/prompts/review-change.md`. Skill has `name` and `description`. Prompt has `description` and `$ARGUMENTS`. Empty target stops.
 
 Guardrails: no file edits, no approve, no merge, no review without a target. `post` uses `gh api repos/<owner>/<repo>/pulls/<n>/reviews`. `event` is `REQUEST_CHANGES` or `COMMENT`, never `APPROVE`.
 

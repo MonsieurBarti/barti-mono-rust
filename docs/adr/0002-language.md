@@ -4,4 +4,4 @@ The hive keeps one ubiquitous language so Nest and Mongo words cannot leak. Cell
 
 Chapter: [1. Language](../architecture.md#1-language)
 
-Grill: [What ubiquitous language does the Rust hive keep from naboo, and what Nest/Mongo terms die?](../../.scratch/rust-hive/issues/06-rust-hive-glossary.md)
+Grill: [What ubiquitous language does the Rust hive keep?](../../.scratch/rust-hive/issues/06-rust-hive-glossary.md)

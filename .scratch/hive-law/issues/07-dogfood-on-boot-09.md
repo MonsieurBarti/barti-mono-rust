@@ -2,6 +2,8 @@
 
 Type: task
 Label: wayfinder:task
+Status: claimed
+
 Blocked by: 03, 04, 05, 06
 
 ## Question

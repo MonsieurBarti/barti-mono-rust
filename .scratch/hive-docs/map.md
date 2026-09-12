@@ -9,8 +9,8 @@ A locked spec for two products. OpenAPI covers every public REST endpoint, for A
 ## Notes
 
 - Domain: greenfield Rust hive-strict. Host product: B2B freight brokerage. Law is [docs/architecture.md](../../docs/architecture.md), [docs/adr/](../../docs/adr/), and [CONTEXT.md](../../CONTEXT.md).
-- Skills every session: grilling, domain-modeling, research. Tracker: `docs/agents/issue-tracker.md`.
-- Standing: local markdown, never Linear. Plan; do not implement the factory or emit OpenAPI on this map.
+- Skills every session: grilling, domain-modeling, research, writing-for-agents. Tracker: `docs/agents/issue-tracker.md`.
+- Standing: local markdown, never Linear. Plan; do not implement the factory or emit OpenAPI on this map. Write every doc this effort produces with writing-for-agents.
 - Locked at charting:
   - Spec-only. Implementation is the next map.
   - Two products, two audiences. OpenAPI is for API consumers. The factory is for maintainers. They do not share an entrypoint.
@@ -34,6 +34,14 @@ A locked spec for two products. OpenAPI covers every public REST endpoint, for A
 - [What is SOTA for generating OpenAPI from an axum presentation layer?](issues/03-sota-openapi-axum.md) — pin utoipa 5 + utoipa-axum 0.2; ToSchema on PL and path attrs on handlers; reopens chapter 8 and stack pins.
 - [What is a cell handbook page?](issues/06-cell-handbook-page.md) — untitled lead; How it works lists Open Host, leaving SPIs, schema, then why; Invariants; See also; ≤500 words.
 - [Where do handbook files live, and what is the maintainer entrypoint?](issues/07-handbook-entrypoint.md) — central `docs/handbook/`; README is start page and graph; one `cells/<cell>.md`; kernel and `app` off the graph.
+- [What belongs in CONTEXT-MAP.md and per-cell CONTEXT.md?](issues/08-context-map-contents.md) — two headings; loads glossary at crate path; shipments and settlement named-only; leftover freight stays in root.
+- [How does presentation emit OpenAPI, and which crate do we pin?](issues/09-openapi-crate-and-annotations.md) — pin utoipa 5.5.0 and utoipa-axum 0.2.0; ToSchema on PL, path attrs on handlers; ignore paste RUSTSEC until the pin bumps.
+- [One OpenAPI document or per-cell specs merged at app?](issues/10-openapi-document-grain.md) — cell emits `OpenApiRouter`; `app` merges and owns `info`; `Problem` shared by name; `app` injects 401/500.
+- [How do API consumers get the OpenAPI document?](issues/11-openapi-consumer-publish.md) — committed `docs/openapi/openapi.json`; pretty JSON; one merged file; `app` does not serve it.
+- [What does the CI gate require?](issues/12-ci-gate-contract.md) — crate listing and closed trees; drift on openapi.json; oasdiff validate and breaking; lychee offline; nextest coverage and Problem identity.
+- [What are the kernel and app short pages?](issues/13-kernel-and-app-pages.md) — hive-plain leads; group lists then why; ≤200 words; not a second architecture.md.
+- [Write the cell-docs and OpenAPI spec](issues/14-write-the-spec.md) — [spec.md](spec.md) locks handbook, glossaries, OpenAPI law, CI, and the `loads` slice.
+
 
 
 ## Not yet specified
@@ -41,7 +49,6 @@ A locked spec for two products. OpenAPI covers every public REST endpoint, for A
 - Site generator and handbook tooling.
 - Prose linter.
 - OpenAPI versioning and compatibility.
-- Whether `shipments` and `settlement` get handbook pages in this spec, or only `loads` as the example.
 - Whether `review-change` learns a docs axis.
 
 ## Out of scope
