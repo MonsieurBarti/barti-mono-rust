@@ -14,6 +14,7 @@ impl StopKind {
         }
     }
 
+    #[allow(dead_code)]
     fn parse(kind: &str) -> Self {
         match kind {
             "pickup" => Self::Pickup,
@@ -52,6 +53,7 @@ pub(crate) struct Load {
 }
 
 impl Load {
+    #[allow(dead_code)]
     pub(crate) fn reconstitute(
         id: String,
         shipper_id: String,
@@ -161,6 +163,7 @@ pub(crate) fn to_rows(load: &Load) -> (LoadRow, Vec<StopRow>) {
     (load_row, stop_rows)
 }
 
+#[allow(dead_code)]
 pub(crate) fn from_rows(load: LoadRow, stops: Vec<StopRow>) -> Load {
     let mut stops: Vec<Stop> = stops
         .into_iter()
@@ -251,6 +254,11 @@ impl LoadBuilder {
 
     pub(crate) fn shipper_id(mut self, shipper_id: impl Into<String>) -> Self {
         self.shipper_id = shipper_id.into();
+        self
+    }
+
+    pub(crate) fn actor_id(mut self, actor_id: impl Into<String>) -> Self {
+        self.actor_id = actor_id.into();
         self
     }
 
@@ -349,11 +357,33 @@ mod tests {
 
     #[test]
     fn create_rejects_empty_shipper_id() {
-        let (id, _, actor_id, created_at, pickup, delivery) =
+        let (id, shipper_id, actor_id, created_at, pickup, delivery) =
             LoadBuilder::new().shipper_id("  ").into_parts();
         assert_eq!(
-            Load::create(id, "  ".to_owned(), actor_id, created_at, pickup, delivery),
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
             Err(LoadError::EmptyShipperId)
+        );
+    }
+
+    #[test]
+    fn create_rejects_empty_actor_id() {
+        let (id, shipper_id, actor_id, created_at, pickup, delivery) =
+            LoadBuilder::new().actor_id("  ").into_parts();
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::EmptyActorId)
+        );
+    }
+
+    #[test]
+    fn create_rejects_stop_kinds() {
+        let (id, shipper_id, actor_id, created_at, mut pickup, mut delivery) =
+            LoadBuilder::new().into_parts();
+        pickup.kind = super::StopKind::Delivery;
+        delivery.kind = super::StopKind::Pickup;
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::StopKinds)
         );
     }
 

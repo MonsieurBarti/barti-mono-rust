@@ -1,5 +1,5 @@
 use crate::instant::Instant;
-use std::sync::{Mutex, MutexGuard};
+use std::sync::{Arc, Mutex, MutexGuard};
 use time::OffsetDateTime;
 
 pub trait Clock: Send + Sync {
@@ -16,14 +16,15 @@ impl Clock for SystemClock {
     }
 }
 
+#[derive(Clone)]
 pub struct FakeClock {
-    now: Mutex<Instant>,
+    now: Arc<Mutex<Instant>>,
 }
 
 impl FakeClock {
     pub fn new(now: Instant) -> Self {
         Self {
-            now: Mutex::new(now),
+            now: Arc::new(Mutex::new(now)),
         }
     }
 
@@ -39,12 +40,6 @@ impl FakeClock {
         self.now
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
-    }
-}
-
-impl Clone for FakeClock {
-    fn clone(&self) -> Self {
-        Self::new(self.now())
     }
 }
 
@@ -80,6 +75,15 @@ mod tests {
     fn fake_clock_is_usable_as_clock() {
         let clock = FakeClock::new(t0());
         assert_eq!(Clock::now(&clock), t0());
+    }
+
+    #[test]
+    fn fake_clock_clone_shares_now() {
+        let clock = FakeClock::new(t0());
+        let clone = clock.clone();
+        let later = t0().checked_add_seconds(1).unwrap();
+        clock.set(later);
+        assert_eq!(clone.now(), later);
     }
 
     #[test]

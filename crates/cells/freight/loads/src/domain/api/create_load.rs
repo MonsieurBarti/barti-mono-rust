@@ -1,6 +1,7 @@
 use garde::Validate;
 use kernel::Violation;
 use serde::{Deserialize, Serialize};
+use std::future::Future;
 
 const PORT: &str = "createLoad";
 
@@ -105,6 +106,16 @@ impl From<Violation> for ViolationDto {
 pub(crate) enum CreateLoadError {
     ValidationFailed { violations: Vec<ViolationDto> },
     LoadConflict,
+    LoadInvalid,
+}
+
+pub(crate) trait CreateLoad {
+    fn create_load(
+        &self,
+        actor_id: String,
+        idempotency_key: String,
+        input: CreateLoadInput,
+    ) -> impl Future<Output = Result<LoadResource, CreateLoadError>> + Send;
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -117,13 +128,6 @@ enum StoredOutcome {
 pub(crate) fn decode(input: CreateLoadInput) -> Result<CreateLoadInput, CreateLoadError> {
     if let Err(report) = input.validate() {
         return Err(map_garde(report));
-    }
-    if input.stops.len() != 2 {
-        return Err(violation(
-            "stops",
-            "length",
-            "must contain exactly two stops",
-        ));
     }
     let pickup_count = input
         .stops
@@ -173,8 +177,20 @@ pub(crate) fn decode(input: CreateLoadInput) -> Result<CreateLoadInput, CreateLo
 }
 
 pub(crate) fn fingerprint(input: &CreateLoadInput) -> String {
-    serde_json::to_string(&FingerprintBody { port: PORT, input })
-        .expect("create-load fingerprint is serializable")
+    let json = serde_json::to_string(&FingerprintBody { port: PORT, input })
+        .expect("create-load fingerprint is serializable");
+    fnv1a64_hex(json.as_bytes())
+}
+
+fn fnv1a64_hex(bytes: &[u8]) -> String {
+    const OFFSET: u64 = 0xcbf29ce484222325;
+    const PRIME: u64 = 0x100000001b3;
+    let mut hash = OFFSET;
+    for &b in bytes {
+        hash ^= u64::from(b);
+        hash = hash.wrapping_mul(PRIME);
+    }
+    format!("{hash:016x}")
 }
 
 pub(crate) fn encode_outcome(result: &Result<LoadResource, CreateLoadError>) -> String {
@@ -203,10 +219,20 @@ fn map_garde(report: garde::Report) -> CreateLoadError {
     let violations = report
         .iter()
         .map(|(path, error)| {
+            let message = error.to_string();
+            let code = if message.contains("length") {
+                "length"
+            } else if message == "must be YYYY-MM-DD" {
+                "date"
+            } else if message == "must be two uppercase letters" {
+                "country"
+            } else {
+                "invalid"
+            };
             ViolationDto::from(Violation {
                 path: path.to_string(),
-                code: "invalid".to_owned(),
-                message: error.to_string(),
+                code: code.to_owned(),
+                message,
             })
         })
         .collect();
@@ -235,13 +261,20 @@ fn iso_alpha2(value: &str, _: &()) -> garde::Result {
     if value.len() == 2 && value.bytes().all(|b| b.is_ascii_uppercase()) {
         Ok(())
     } else {
-        Err(garde::Error::new("must be ISO 3166-1 alpha-2"))
+        Err(garde::Error::new("must be two uppercase letters"))
     }
 }
 
 fn is_ymd(date: &str) -> bool {
     let bytes = date.as_bytes();
     if bytes.len() != 10 || bytes[4] != b'-' || bytes[7] != b'-' {
+        return false;
+    }
+    if !bytes
+        .iter()
+        .enumerate()
+        .all(|(i, b)| i == 4 || i == 7 || b.is_ascii_digit())
+    {
         return false;
     }
     let Ok(year) = date[0..4].parse::<i32>() else {
@@ -408,6 +441,26 @@ mod tests {
     }
 
     #[test]
+    fn decode_rejects_signed_month() {
+        let mut body = valid_json();
+        body["stops"][0]["date"] = serde_json::json!("2026-+1-05");
+        assert!(matches!(
+            decode_err(body),
+            CreateLoadError::ValidationFailed { .. }
+        ));
+    }
+
+    #[test]
+    fn decode_rejects_signed_year() {
+        let mut body = valid_json();
+        body["stops"][0]["date"] = serde_json::json!("-100-01-01");
+        assert!(matches!(
+            decode_err(body),
+            CreateLoadError::ValidationFailed { .. }
+        ));
+    }
+
+    #[test]
     fn output_omits_empty_optionals() {
         let json = serde_json::to_value(LoadResource {
             id: "01900000-0000-7000-8000-000000000001".to_owned(),
@@ -455,7 +508,13 @@ mod tests {
     #[test]
     fn fingerprint_is_stable_for_the_same_decoded_body() {
         let input = decode(input_from(valid_json())).unwrap();
-        assert_eq!(fingerprint(&input), fingerprint(&input));
-        assert!(fingerprint(&input).contains("createLoad"));
+        let hash = fingerprint(&input);
+        assert_eq!(hash, fingerprint(&input));
+        assert_eq!(hash.len(), 16);
+        assert!(hash.chars().all(|c| matches!(c, '0'..='9' | 'a'..='f')));
+        let mut other = valid_json();
+        other["shipperId"] = serde_json::json!("shipper-2");
+        let other = decode(input_from(other)).unwrap();
+        assert_ne!(hash, fingerprint(&other));
     }
 }

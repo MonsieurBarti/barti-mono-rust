@@ -1,20 +1,23 @@
+use super::{ActorId, CorrelationId};
 use crate::Loads;
-use crate::application::commands::create_load::CreateLoadFailure;
-use crate::domain::api::create_load::{CreateLoadError, CreateLoadInput, ViolationDto};
+use crate::application::commands::create_load::CreateLoadCommand;
+use crate::domain::api::create_load::{CreateLoad, CreateLoadError, CreateLoadInput, ViolationDto};
 use axum::Json;
 use axum::body::Bytes;
-use axum::extract::State;
+use axum::extract::{Extension, OriginalUri, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use kernel::{Clock, Logger, Metrics};
+use serde_json::error::Category;
 
 const PROBLEM_JSON: &str = "application/problem+json";
 const IDEMPOTENCY_KEY: &str = "idempotency-key";
-const ACTOR_ID: &str = "x-actor-id";
-const CORRELATION_ID: &str = "x-correlation-id";
 
 pub(crate) async fn create_load<C, L, M>(
     State(cell): State<Loads<C, L, M>>,
+    actor: ActorId,
+    correlation: Option<Extension<CorrelationId>>,
+    OriginalUri(uri): OriginalUri,
     headers: HeaderMap,
     body: Bytes,
 ) -> Response
@@ -23,26 +26,26 @@ where
     L: Logger + Clone + Send + Sync + 'static,
     M: Metrics + Clone + Send + Sync + 'static,
 {
-    let instance = "/loads";
-    let correlation = header_str(&headers, CORRELATION_ID);
+    let instance = uri.path();
+    let correlation = correlation.as_ref().map(|Extension(id)| id.0.as_str());
     let idempotency_key = match read_idempotency_key(&headers) {
         Ok(key) => key,
         Err(error) => return problem(error, instance, correlation),
-    };
-    let actor_id = match header_str(&headers, ACTOR_ID).filter(|id| !id.is_empty()) {
-        Some(id) => id.to_owned(),
-        None => {
-            return unhandled(instance, correlation);
-        }
     };
     let input = match deserialize_body(&body) {
         Ok(input) => input,
         Err(error) => return problem(error, instance, correlation),
     };
-    match cell.create_load(actor_id, idempotency_key, input).await {
+    match (CreateLoadCommand {
+        store: &cell.store,
+        clock: &cell.clock,
+        logger: &cell.logger,
+    }
+    .create_load(actor.0, idempotency_key, input)
+    .await)
+    {
         Ok(resource) => (StatusCode::CREATED, Json(resource)).into_response(),
-        Err(CreateLoadFailure::Envelope(error)) => problem(error, instance, correlation),
-        Err(CreateLoadFailure::Unexpected) => unhandled(instance, correlation),
+        Err(error) => problem(error, instance, correlation),
     }
 }
 
@@ -62,12 +65,18 @@ fn read_idempotency_key(headers: &HeaderMap) -> Result<String, CreateLoadError> 
 
 fn deserialize_body(body: &Bytes) -> Result<CreateLoadInput, CreateLoadError> {
     let mut de = serde_json::Deserializer::from_slice(body);
-    serde_path_to_error::deserialize(&mut de).map_err(|error| CreateLoadError::ValidationFailed {
-        violations: vec![ViolationDto {
-            path: error.path().to_string(),
-            code: "invalid".to_owned(),
-            message: error.inner().to_string(),
-        }],
+    serde_path_to_error::deserialize(&mut de).map_err(|error| {
+        let message = match error.inner().classify() {
+            Category::Data => "invalid value",
+            Category::Syntax | Category::Eof | Category::Io => "invalid json",
+        };
+        CreateLoadError::ValidationFailed {
+            violations: vec![ViolationDto {
+                path: error.path().to_string(),
+                code: "invalid".to_owned(),
+                message: message.to_owned(),
+            }],
+        }
     })
 }
 
@@ -95,6 +104,12 @@ fn problem(error: CreateLoadError, instance: &str, correlation_id: Option<&str>)
             "The request conflicts with an existing Load.",
             None,
         ),
+        CreateLoadError::LoadInvalid => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "LOAD_INVALID",
+            "The Load could not be created.",
+            None,
+        ),
     };
     let mut body = serde_json::json!({
         "type": r#type,
@@ -114,26 +129,4 @@ fn problem(error: CreateLoadError, instance: &str, correlation_id: Option<&str>)
         body.to_string(),
     )
         .into_response()
-}
-
-fn unhandled(instance: &str, correlation_id: Option<&str>) -> Response {
-    let mut body = serde_json::json!({
-        "type": "about:blank",
-        "status": 500,
-        "detail": "Internal server error",
-        "instance": instance,
-    });
-    if let Some(id) = correlation_id.filter(|id| !id.is_empty()) {
-        body["correlationId"] = serde_json::Value::String(id.to_owned());
-    }
-    (
-        StatusCode::INTERNAL_SERVER_ERROR,
-        [(header::CONTENT_TYPE, PROBLEM_JSON)],
-        body.to_string(),
-    )
-        .into_response()
-}
-
-fn header_str<'a>(headers: &'a HeaderMap, name: &'static str) -> Option<&'a str> {
-    headers.get(name).and_then(|value| value.to_str().ok())
 }

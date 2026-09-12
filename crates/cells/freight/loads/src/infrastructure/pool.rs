@@ -1,10 +1,10 @@
 use sqlx::PgPool;
 
 #[derive(Clone)]
-pub(crate) struct LoadsPool(PgPool);
+pub struct LoadsPool(PgPool);
 
 impl LoadsPool {
-    pub(crate) fn new(pool: PgPool) -> Self {
+    pub fn new(pool: PgPool) -> Self {
         Self(pool)
     }
 

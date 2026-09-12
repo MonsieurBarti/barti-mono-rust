@@ -22,11 +22,11 @@ Do not add GET or list. Do not add Quote.
 
 ## Answer
 
-`POST /loads` is the create-load driving adapter. Create-load stays `pub(crate)`. `lib.rs` exports `new` and `router`. `new` wraps the named `PgPool` in `LoadsPool` and binds `Clock`, `Logger`, and `Metrics`. `app serve` nests `loads::router`.
+`POST /loads` is the create-load driving adapter. Create-load is a `pub(crate)` API-port trait implemented by `CreateLoadCommand`. `lib.rs` exports `new` and `router`. `new` takes `LoadsPool`; `app` wraps the named `PgPool`. `new` binds `Clock`, `Logger`, and `Metrics`. `app serve` nests `loads::router`.
 
 Body is ticket 03 PL. Codec `decode` is the first act. Header `Idempotency-Key` is required in presentation: missing, empty, or over-length is `VALIDATION_FAILED` and never enters the cell. Port takes `actor_id` and `idempotency_key` as strings. Success is 201 Load JSON. Handler has no business logic.
 
-Idempotency SPI `get` is a committed read. Matching fingerprint replays the stored `Result`. Mismatch is `VALIDATION_FAILED`. Miss runs the command. `save` writes the idempotency row on the same transaction as the Load. Store success. Do not store 5xx or garde failures. `23505` is `LOAD_CONFLICT` → 409. Envelope is `{ type, context }` at the port. Public document is problem+json.
+Idempotency SPI `get` is a committed read. Matching fingerprint replays the stored `Result`. Mismatch is `VALIDATION_FAILED`. Miss runs the command. `save` writes the idempotency row on the same transaction as the Load. Store success. Do not store 5xx or garde failures. `23505` is `LOAD_CONFLICT` → 409. Envelope is `CreateLoadError` at that port. Public document is problem+json.
 
-Proof: 91 tests green including codec, Load invariants, sqlx happy/error/replay/`23505`, and tower e2e (missing header + happy POST). Cell tests never boot `app`. `cargo clippy --workspace --all-targets -D warnings` and `cargo deny check bans` clean.
+Proof: default nextest excludes `integration::` and the loads `tests/` target (no Postgres in CI). Sqlx + e2e need DSNs. Cell tests never boot `app`.
 

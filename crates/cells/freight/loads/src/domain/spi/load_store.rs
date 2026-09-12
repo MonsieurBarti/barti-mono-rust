@@ -19,6 +19,7 @@ pub(crate) struct IdempotencyRecord {
 }
 
 pub(crate) trait LoadStore {
+    #[allow(dead_code)]
     fn get_by_id(
         &self,
         id: &str,

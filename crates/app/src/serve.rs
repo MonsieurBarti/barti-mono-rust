@@ -29,7 +29,7 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
         ],
     );
     metrics.increment("hive.app.serve_started", 1, &[("cell", "loads")]);
-    let loads = loads::new(loads_pool, clock, logger, metrics);
+    let loads = loads::new(loads::LoadsPool::new(loads_pool), clock, logger, metrics);
 
     let listener = TcpListener::bind(BIND).await?;
     axum::serve(listener, http::router(loads::router(&loads)))

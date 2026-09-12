@@ -1,51 +1,68 @@
 use crate::domain::api::create_load::{
-    AddressResource, CreateLoadError, CreateLoadInput, LoadResource, StopKindPl, StopResource,
-    ViolationDto, decode, decode_outcome, encode_outcome, fingerprint,
+    AddressResource, CreateLoad, CreateLoadError, CreateLoadInput, LoadResource, StopKindPl,
+    StopResource, ViolationDto, decode, decode_outcome, encode_outcome, fingerprint,
 };
 use crate::domain::entities::load::{Address, Load, Stop, StopKind};
 use crate::domain::spi::load_store::{
     IdempotencyRecord, IdempotencyStore, LoadStore, LoadStoreError,
 };
-use kernel::Clock;
+use kernel::{Clock, Logger};
 use uuid::Uuid;
 
-#[derive(Debug)]
-pub(crate) enum CreateLoadFailure {
-    Envelope(CreateLoadError),
-    Unexpected,
+pub(crate) struct CreateLoadCommand<'a, S, C, Lg> {
+    pub(crate) store: &'a S,
+    pub(crate) clock: &'a C,
+    pub(crate) logger: &'a Lg,
 }
 
-pub(crate) async fn run<S, C>(
+impl<'a, S, C, Lg> CreateLoad for CreateLoadCommand<'a, S, C, Lg>
+where
+    S: LoadStore + IdempotencyStore + Sync,
+    C: Clock,
+    Lg: Logger,
+{
+    fn create_load(
+        &self,
+        actor_id: String,
+        idempotency_key: String,
+        input: CreateLoadInput,
+    ) -> impl Future<Output = Result<LoadResource, CreateLoadError>> + Send {
+        run(
+            self.store,
+            self.clock,
+            self.logger,
+            actor_id,
+            idempotency_key,
+            input,
+        )
+    }
+}
+
+pub(crate) async fn run<S, C, Lg>(
     store: &S,
     clock: &C,
+    logger: &Lg,
     actor_id: String,
     idempotency_key: String,
     input: CreateLoadInput,
-) -> Result<LoadResource, CreateLoadFailure>
+) -> Result<LoadResource, CreateLoadError>
 where
     S: LoadStore + IdempotencyStore,
     C: Clock,
+    Lg: Logger,
 {
-    let input = decode(input).map_err(CreateLoadFailure::Envelope)?;
+    let input = decode(input)?;
     let fingerprint = fingerprint(&input);
     match store.get(&actor_id, &idempotency_key).await {
         Ok(Some(record)) if record.fingerprint == fingerprint => {
-            return replay(&record.outcome);
+            return replay(logger, &record.outcome);
         }
-        Ok(Some(_)) => {
-            return Err(CreateLoadFailure::Envelope(mismatch()));
-        }
+        Ok(Some(_)) => return Err(mismatch()),
         Ok(None) => {}
-        Err(LoadStoreError::Conflict) => {
-            return Err(CreateLoadFailure::Envelope(CreateLoadError::LoadConflict));
-        }
-        Err(LoadStoreError::Unexpected) => return Err(CreateLoadFailure::Unexpected),
+        Err(_) => unexpected(logger),
     }
 
-    let load = match build_load(&actor_id, clock.now(), &input) {
-        Ok(load) => load,
-        Err(()) => return Err(CreateLoadFailure::Unexpected),
-    };
+    let load = build_load(&actor_id, clock.now(), &input)?;
     let resource = to_resource(&load);
     let record = IdempotencyRecord {
         actor_id,
@@ -55,19 +72,22 @@ where
     };
     match store.save(&load, Some(record)).await {
         Ok(()) => Ok(resource),
-        Err(LoadStoreError::Conflict) => {
-            Err(CreateLoadFailure::Envelope(CreateLoadError::LoadConflict))
-        }
-        Err(LoadStoreError::Unexpected) => Err(CreateLoadFailure::Unexpected),
+        Err(LoadStoreError::Conflict) => Err(CreateLoadError::LoadConflict),
+        Err(LoadStoreError::Unexpected) => unexpected(logger),
     }
 }
 
-fn replay(outcome: &str) -> Result<LoadResource, CreateLoadFailure> {
+fn replay<Lg: Logger>(logger: &Lg, outcome: &str) -> Result<LoadResource, CreateLoadError> {
     match decode_outcome(outcome) {
         Ok(Ok(resource)) => Ok(resource),
-        Ok(Err(error)) => Err(CreateLoadFailure::Envelope(error)),
-        Err(()) => Err(CreateLoadFailure::Unexpected),
+        Ok(Err(e)) => Err(e),
+        Err(()) => unexpected(logger),
     }
+}
+
+fn unexpected(logger: &impl Logger) -> ! {
+    logger.error("loads.create_load.failed", &[("error", "unexpected")]);
+    panic!("loads.create_load: unexpected store error");
 }
 
 fn mismatch() -> CreateLoadError {
@@ -84,17 +104,17 @@ fn build_load(
     actor_id: &str,
     created_at: kernel::Instant,
     input: &CreateLoadInput,
-) -> Result<Load, ()> {
+) -> Result<Load, CreateLoadError> {
     let pickup = input
         .stops
         .iter()
         .find(|stop| stop.kind == StopKindPl::Pickup)
-        .ok_or(())?;
+        .ok_or(CreateLoadError::LoadInvalid)?;
     let delivery = input
         .stops
         .iter()
         .find(|stop| stop.kind == StopKindPl::Delivery)
-        .ok_or(())?;
+        .ok_or(CreateLoadError::LoadInvalid)?;
     Load::create(
         mint(),
         input.shipper_id.clone(),
@@ -103,7 +123,7 @@ fn build_load(
         to_stop(pickup, StopKind::Pickup),
         to_stop(delivery, StopKind::Delivery),
     )
-    .map_err(|_| ())
+    .map_err(|_| CreateLoadError::LoadInvalid)
 }
 
 fn to_stop(input: &crate::domain::api::create_load::StopInput, kind: StopKind) -> Stop {
@@ -157,17 +177,123 @@ fn mint() -> String {
 }
 
 #[cfg(test)]
+mod tests {
+    use super::run;
+    use crate::domain::api::create_load::{
+        AddressInput, CreateLoadError, CreateLoadInput, StopInput, StopKindPl,
+    };
+    use crate::domain::entities::load::Load;
+    use crate::domain::spi::load_store::{
+        IdempotencyRecord, IdempotencyStore, LoadStore, LoadStoreError,
+    };
+    use kernel::{FakeClock, Instant, Logger};
+
+    struct Silent;
+
+    impl Logger for Silent {
+        fn debug(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn info(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn warn(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn error(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+    }
+
+    struct ConflictOnSave;
+
+    impl LoadStore for ConflictOnSave {
+        async fn get_by_id(&self, _id: &str) -> Result<Option<Load>, LoadStoreError> {
+            Ok(None)
+        }
+
+        async fn save(
+            &self,
+            _load: &Load,
+            _idempotency: Option<IdempotencyRecord>,
+        ) -> Result<(), LoadStoreError> {
+            Err(LoadStoreError::Conflict)
+        }
+    }
+
+    impl IdempotencyStore for ConflictOnSave {
+        async fn get(
+            &self,
+            _actor_id: &str,
+            _key: &str,
+        ) -> Result<Option<IdempotencyRecord>, LoadStoreError> {
+            Ok(None)
+        }
+    }
+
+    fn valid_input() -> CreateLoadInput {
+        CreateLoadInput {
+            shipper_id: "shipper-1".to_owned(),
+            stops: vec![
+                StopInput {
+                    kind: StopKindPl::Pickup,
+                    date: "2026-09-20".to_owned(),
+                    name: None,
+                    address: AddressInput {
+                        line1: "1 Dock".to_owned(),
+                        line2: None,
+                        city: "Dallas".to_owned(),
+                        region: "TX".to_owned(),
+                        postal_code: "75201".to_owned(),
+                        country: "US".to_owned(),
+                    },
+                },
+                StopInput {
+                    kind: StopKindPl::Delivery,
+                    date: "2026-09-21".to_owned(),
+                    name: Some("Consignee".to_owned()),
+                    address: AddressInput {
+                        line1: "9 Warehouse".to_owned(),
+                        line2: None,
+                        city: "Austin".to_owned(),
+                        region: "TX".to_owned(),
+                        postal_code: "78701".to_owned(),
+                        country: "US".to_owned(),
+                    },
+                },
+            ],
+        }
+    }
+
+    #[tokio::test]
+    async fn save_conflict_maps_to_load_conflict() {
+        let clock = FakeClock::new(Instant::from_unix_timestamp(1_700_000_000).unwrap());
+        let result = run(
+            &ConflictOnSave,
+            &clock,
+            &Silent,
+            "actor-1".to_owned(),
+            "key-1".to_owned(),
+            valid_input(),
+        )
+        .await;
+        assert!(matches!(result, Err(CreateLoadError::LoadConflict)));
+    }
+}
+
+#[cfg(test)]
 mod integration {
-    use super::{CreateLoadFailure, run};
+    use super::run;
     use crate::domain::api::create_load::{
         AddressInput, CreateLoadError, CreateLoadInput, StopInput, StopKindPl,
     };
     use crate::domain::spi::load_store::{IdempotencyStore, LoadStore};
     use crate::infrastructure::LoadsPool;
     use crate::infrastructure::load_store::SqlxLoadStore;
-    use kernel::{FakeClock, Instant};
+    use kernel::{FakeClock, Instant, Logger};
     use sqlx::PgPool;
     use uuid::Uuid;
+
+    struct Silent;
+
+    impl Logger for Silent {
+        fn debug(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn info(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn warn(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn error(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+    }
 
     async fn sqlx_store() -> SqlxLoadStore {
         let migrator_url = std::env::var("LOADS_MIGRATOR_DATABASE_URL")
@@ -234,7 +360,7 @@ mod integration {
         let clock = clock();
         let actor = Uuid::now_v7().to_string();
         let key = Uuid::now_v7().to_string();
-        let resource = run(&store, &clock, actor, key, valid_input("shipper-1"))
+        let resource = run(&store, &clock, &Silent, actor, key, valid_input("shipper-1"))
             .await
             .unwrap_or_else(|_| panic!("create"));
         assert_eq!(resource.shipper_id, "shipper-1");
@@ -253,8 +379,8 @@ mod integration {
         let key = Uuid::now_v7().to_string();
         let mut input = valid_input("shipper-1");
         input.shipper_id.clear();
-        match run(&store, &clock, actor.clone(), key.clone(), input).await {
-            Err(CreateLoadFailure::Envelope(CreateLoadError::ValidationFailed { .. })) => {}
+        match run(&store, &clock, &Silent, actor.clone(), key.clone(), input).await {
+            Err(CreateLoadError::ValidationFailed { .. }) => {}
             other => panic!("{other:?}"),
         }
         assert_eq!(store.get(&actor, &key).await.unwrap(), None);
@@ -269,6 +395,7 @@ mod integration {
         let first = run(
             &store,
             &clock,
+            &Silent,
             actor.clone(),
             key.clone(),
             valid_input("shipper-1"),
@@ -276,9 +403,16 @@ mod integration {
         .await
         .unwrap_or_else(|_| panic!("first"));
         clock.set(clock.now().checked_add_seconds(60).unwrap());
-        let second = run(&store, &clock, actor, key, valid_input("shipper-1"))
-            .await
-            .unwrap_or_else(|_| panic!("replay"));
+        let second = run(
+            &store,
+            &clock,
+            &Silent,
+            actor,
+            key,
+            valid_input("shipper-1"),
+        )
+        .await
+        .unwrap_or_else(|_| panic!("replay"));
         assert_eq!(first, second);
         assert_eq!(first.created_at, "2023-11-14T22:13:20.000Z");
     }
@@ -292,14 +426,24 @@ mod integration {
         run(
             &store,
             &clock,
+            &Silent,
             actor.clone(),
             key.clone(),
             valid_input("shipper-1"),
         )
         .await
         .unwrap_or_else(|_| panic!("first"));
-        match run(&store, &clock, actor, key, valid_input("shipper-2")).await {
-            Err(CreateLoadFailure::Envelope(CreateLoadError::ValidationFailed { violations })) => {
+        match run(
+            &store,
+            &clock,
+            &Silent,
+            actor,
+            key,
+            valid_input("shipper-2"),
+        )
+        .await
+        {
+            Err(CreateLoadError::ValidationFailed { violations }) => {
                 assert_eq!(violations[0].code, "mismatch");
             }
             other => panic!("{other:?}"),
@@ -316,6 +460,7 @@ mod integration {
             run(
                 &store,
                 &clock,
+                &Silent,
                 actor.clone(),
                 key.clone(),
                 valid_input("shipper-1"),
@@ -323,6 +468,7 @@ mod integration {
             run(
                 &store,
                 &clock,
+                &Silent,
                 actor.clone(),
                 key.clone(),
                 valid_input("shipper-1"),
@@ -330,9 +476,9 @@ mod integration {
         );
         match (a, b) {
             (Ok(left), Ok(right)) => assert_eq!(left.id, right.id),
-            (Ok(won), Err(CreateLoadFailure::Envelope(CreateLoadError::LoadConflict)))
-            | (Err(CreateLoadFailure::Envelope(CreateLoadError::LoadConflict)), Ok(won)) => {
-                let replayed = run(&store, &clock, actor, key, valid_input("shipper-1"))
+            (Ok(won), Err(CreateLoadError::LoadConflict))
+            | (Err(CreateLoadError::LoadConflict), Ok(won)) => {
+                let replayed = run(&store, &clock, &Silent, actor, key, valid_input("shipper-1"))
                     .await
                     .unwrap_or_else(|_| panic!("retry"));
                 assert_eq!(replayed.id, won.id);
