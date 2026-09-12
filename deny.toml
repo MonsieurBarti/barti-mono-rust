@@ -1,5 +1,6 @@
 [bans]
 # Cell → app is a cargo error: app is bin-only, no lib target.
+# New cell: add `{ crate = "<name>", wrappers = ["app"], reason = "hive: only composition root depends on cells" }`.
 deny = [
     { crate = "loads", wrappers = ["app"], reason = "hive: only composition root depends on cells" },
     { crate = "tracing", wrappers = ["app", "axum", "axum-core", "hyper-util", "opentelemetry", "sqlx-core", "sqlx-postgres", "tower", "tower-http", "tracing-opentelemetry", "tracing-subscriber"], reason = "hive: cells import none of tracing or OpenTelemetry" },

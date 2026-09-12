@@ -32,7 +32,7 @@ pub(crate) trait LoadStore {
 }
 
 #[cfg(any(test, feature = "contract"))]
-pub async fn load_store_contract<S: LoadStore>(
+pub(crate) async fn load_store_contract<S: LoadStore>(
     store: &S,
     missing_id: &str,
     load: &Load,
