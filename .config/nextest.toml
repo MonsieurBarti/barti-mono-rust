@@ -1,10 +1,13 @@
 [profile.default]
-default-filter = "not test(/::integration::/) and not (package(loads) and kind(test))"
+default-filter = "not (test(/::integration::/) or kind(test))"
 
-[profile.integration]
-default-filter = "test(/::integration::/)"
-test-threads = 1
+# Every Postgres lane joins group `db` under any profile; the slot picks the worker database.
+[[profile.default.overrides]]
+filter = "test(/::integration::/) or kind(test)"
+test-group = "db"
 
-[profile.e2e]
-default-filter = "package(loads) and kind(test)"
-test-threads = 1
+[profile.db]
+default-filter = "test(/::integration::/) or kind(test)"
+
+[test-groups]
+db = { max-threads = 4 }
