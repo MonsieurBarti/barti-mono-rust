@@ -16,6 +16,10 @@ impl Instant {
             .map(Self::from_utc)
     }
 
+    pub fn unix_timestamp(self) -> i64 {
+        self.0.unix_timestamp()
+    }
+
     pub(crate) fn from_utc(dt: OffsetDateTime) -> Self {
         Self(dt.to_offset(UtcOffset::UTC))
     }
@@ -42,5 +46,11 @@ mod tests {
     fn checked_add_seconds_rejects_overflow() {
         let instant = Instant::from_unix_timestamp(0).unwrap();
         assert!(instant.checked_add_seconds(i64::MAX).is_none());
+    }
+
+    #[test]
+    fn unix_timestamp_round_trips_seconds() {
+        let instant = Instant::from_unix_timestamp(1_700_000_000).unwrap();
+        assert_eq!(instant.unix_timestamp(), 1_700_000_000);
     }
 }

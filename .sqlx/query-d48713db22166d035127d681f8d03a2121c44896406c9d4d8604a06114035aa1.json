@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        INSERT INTO loads.load (id, shipper_id, actor_id, created_at)\n        VALUES (\n            $1,\n            $2,\n            $3,\n            TIMESTAMPTZ 'epoch' + $4::bigint * INTERVAL '1 millisecond'\n        )\n        ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Text",
+        "Text",
+        "Int8"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "d48713db22166d035127d681f8d03a2121c44896406c9d4d8604a06114035aa1"
+}

@@ -1,0 +1,54 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id::text AS \"id!\",\n            shipper_id,\n            actor_id,\n            (EXTRACT(EPOCH FROM created_at) * 1000)::bigint AS \"created_at_millis!\"\n        FROM loads.load\n        WHERE id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "shipper_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "load",
+            "name": "shipper_id"
+          }
+        }
+      },
+      {
+        "ordinal": 2,
+        "name": "actor_id",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "load",
+            "name": "actor_id"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "created_at_millis!",
+        "type_info": "Int8",
+        "origin": "Expression"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      false,
+      false,
+      null
+    ]
+  },
+  "hash": "75575abd50d6fde32c8bdb5fbbfe290a98fe9422a2f2d6da29565e6347a3b101"
+}

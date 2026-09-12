@@ -1,0 +1,133 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            id::text AS \"id!\",\n            load_id::text AS \"load_id!\",\n            kind,\n            date::text AS \"date!\",\n            name,\n            line1,\n            line2,\n            city,\n            region,\n            postal_code,\n            country\n        FROM loads.stop\n        WHERE load_id = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 1,
+        "name": "load_id!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 2,
+        "name": "kind",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stop",
+            "name": "kind"
+          }
+        }
+      },
+      {
+        "ordinal": 3,
+        "name": "date!",
+        "type_info": "Text",
+        "origin": "Expression"
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stop",
+            "name": "name"
+          }
+        }
+      },
+      {
+        "ordinal": 5,
+        "name": "line1",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stop",
+            "name": "line1"
+          }
+        }
+      },
+      {
+        "ordinal": 6,
+        "name": "line2",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stop",
+            "name": "line2"
+          }
+        }
+      },
+      {
+        "ordinal": 7,
+        "name": "city",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stop",
+            "name": "city"
+          }
+        }
+      },
+      {
+        "ordinal": 8,
+        "name": "region",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stop",
+            "name": "region"
+          }
+        }
+      },
+      {
+        "ordinal": 9,
+        "name": "postal_code",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stop",
+            "name": "postal_code"
+          }
+        }
+      },
+      {
+        "ordinal": 10,
+        "name": "country",
+        "type_info": "Text",
+        "origin": {
+          "Table": {
+            "table": "stop",
+            "name": "country"
+          }
+        }
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Uuid"
+      ]
+    },
+    "nullable": [
+      null,
+      null,
+      false,
+      null,
+      true,
+      false,
+      true,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "75ff0a0f0cae9608f2f64f65317af6b80f2b4626c033d673b965a030a683d20f"
+}

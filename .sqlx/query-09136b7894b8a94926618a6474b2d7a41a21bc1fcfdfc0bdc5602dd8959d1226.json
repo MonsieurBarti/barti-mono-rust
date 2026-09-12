@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO loads.idempotency_key (actor_id, key, fingerprint, outcome)\n            VALUES ($1, $2, $3, $4)\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "09136b7894b8a94926618a6474b2d7a41a21bc1fcfdfc0bdc5602dd8959d1226"
+}
