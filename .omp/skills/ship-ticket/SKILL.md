@@ -57,19 +57,25 @@ cargo nextest run --workspace --profile db
 
 Fix every failure, pre-existing included. Done when every run command exits 0.
 
-## 5. Self-review
+## 5. Attack
+
+Read `skill://local-attack` and run it on this ticket from the worktree.
+
+Done when local-attack is green.
+
+## 6. Self-review
 
 Read `skill://review-change` on this branch. Fix every `reject`. Record each `warn` and why it stays.
 
 Done when no `reject` remains.
 
-## 6. Resolve
+## 7. Resolve
 
 On the same branch: append `## Answer`, set `Status: resolved`, add one gist line to the map's Decisions so far.
 
 Done when the ticket shows `Status: resolved` and the map line exists.
 
-## 7. Push
+## 8. Push
 
 Commit with `feat:`, `fix:`, or `chore:`. Then:
 

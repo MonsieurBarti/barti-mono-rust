@@ -1,5 +1,5 @@
 ---
-condition: 'use\s+(sqlx|sea_orm)\b|(sqlx|sea_orm)::'
+condition: 'use\s+sea_orm\b|sea_orm::'
 globs:
   - crates/cells/**/src/domain/**
   - crates/cells/**/src/application/**
