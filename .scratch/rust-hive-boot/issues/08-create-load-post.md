@@ -28,5 +28,7 @@ Body is ticket 03 PL. Codec `decode` is the first act. Header `Idempotency-Key` 
 
 Idempotency SPI `get` is a committed read. Matching fingerprint replays the stored `Result`. Mismatch is `VALIDATION_FAILED`. Miss runs the command. `save` writes the idempotency row on the same transaction as the Load. Store success. Do not store 5xx or garde failures. `23505` is `LOAD_CONFLICT` → 409. Envelope is `CreateLoadError` at that port. Public document is problem+json.
 
-Proof: sea-orm adapter (`SeaOrmLoadStore`, handwritten `Model`/`ActiveModel`, `schema_name = "loads"`, `23505` via `DbErr::sql_err()`), `sea-orm-migration` `Migrator` exported from the cell and run by `app migrate` with `search_path = loads`, sqlx gone as a direct dependency. Default nextest excludes `integration::` and the loads `tests/` target (no Postgres in CI). Cell tests never boot `app`.
+`Load::create` records `LoadEvent::Created`. After `save` returns, the use-case publishes `load.pull_events()` through the in-cell `LoadEvents` SPI. `InCellLoadEvents` binds no handler yet. Replay publishes nothing.
+
+Proof: sea-orm adapter (`SeaOrmLoadStore`, handwritten `Model`/`ActiveModel`, `schema_name = "loads"`, `23505` via `DbErr::sql_err()`), `sea-orm-migration` `Migrator` exported from the cell and run by `app migrate` with `search_path = loads`, sqlx gone as a direct dependency. Default nextest excludes `integration::` and the loads `tests/` target (no Postgres in CI). Unit holds no doubles: `23505` maps to `LOAD_CONFLICT` on the integration lane with the real adapter. Command integration fakes the events SPI and asserts what was published. Cell tests never boot `app`.
 

@@ -1,3 +1,4 @@
+use crate::domain::events::LoadEvent;
 use kernel::Instant;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -50,6 +51,7 @@ pub(crate) struct Load {
     pub(crate) actor_id: String,
     pub(crate) created_at: Instant,
     pub(crate) stops: Vec<Stop>,
+    events: Vec<LoadEvent>,
 }
 
 impl Load {
@@ -67,6 +69,7 @@ impl Load {
             actor_id,
             created_at,
             stops,
+            events: Vec::new(),
         }
     }
 
@@ -95,12 +98,17 @@ impl Load {
             return Err(LoadError::DeliveryBeforePickup);
         }
         Ok(Self {
-            id,
+            id: id.clone(),
             shipper_id,
             actor_id,
             created_at,
             stops: vec![pickup, delivery],
+            events: vec![LoadEvent::Created { load_id: id }],
         })
+    }
+
+    pub(crate) fn pull_events(&mut self) -> Vec<LoadEvent> {
+        std::mem::take(&mut self.events)
     }
 }
 
@@ -319,6 +327,7 @@ impl LoadBuilder {
 #[cfg(test)]
 mod tests {
     use super::{Load, LoadBuilder, LoadError, from_rows, to_rows};
+    use crate::domain::events::LoadEvent;
 
     #[test]
     fn mapper_round_trips_a_load_without_optionals() {
@@ -353,6 +362,20 @@ mod tests {
         assert_eq!(load.shipper_id, "shipper-1");
         assert_eq!(load.stops[0].kind, super::StopKind::Pickup);
         assert_eq!(load.stops[1].kind, super::StopKind::Delivery);
+    }
+
+    #[test]
+    fn create_records_load_created() {
+        let mut load = LoadBuilder::new().build_new();
+        let id = load.id.clone();
+        assert_eq!(load.pull_events(), vec![LoadEvent::Created { load_id: id }]);
+        assert_eq!(load.pull_events(), vec![]);
+    }
+
+    #[test]
+    fn reconstitute_records_no_events() {
+        let mut load = LoadBuilder::new().build();
+        assert_eq!(load.pull_events(), vec![]);
     }
 
     #[test]

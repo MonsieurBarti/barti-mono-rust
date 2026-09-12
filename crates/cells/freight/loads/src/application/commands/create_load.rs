@@ -3,6 +3,7 @@ use crate::domain::api::create_load::{
     StopResource, ViolationDto, decode, decode_outcome, encode_outcome, fingerprint,
 };
 use crate::domain::entities::load::{Address, Load, Stop, StopKind};
+use crate::domain::spi::load_events::LoadEvents;
 use crate::domain::spi::load_store::{
     IdempotencyRecord, IdempotencyStore, LoadStore, LoadStoreError,
 };
@@ -10,15 +11,17 @@ use kernel::{Clock, Logger};
 use uuid::Uuid;
 
 #[derive(Clone)]
-pub(crate) struct CreateLoadCommand<S, C, Lg> {
+pub(crate) struct CreateLoadCommand<S, E, C, Lg> {
     pub(crate) store: S,
+    pub(crate) events: E,
     pub(crate) clock: C,
     pub(crate) logger: Lg,
 }
 
-impl<S, C, Lg> CreateLoad for CreateLoadCommand<S, C, Lg>
+impl<S, E, C, Lg> CreateLoad for CreateLoadCommand<S, E, C, Lg>
 where
     S: LoadStore + IdempotencyStore + Sync,
+    E: LoadEvents + Sync,
     C: Clock,
     Lg: Logger,
 {
@@ -39,7 +42,7 @@ where
             Err(_) => unexpected(&self.logger),
         }
 
-        let load = build_load(&actor_id, self.clock.now(), &input)?;
+        let mut load = build_load(&actor_id, self.clock.now(), &input)?;
         let resource = to_resource(&load);
         let record = IdempotencyRecord {
             actor_id,
@@ -48,7 +51,10 @@ where
             outcome: encode_outcome(&Ok(resource.clone())),
         };
         match self.store.save(&load, Some(record)).await {
-            Ok(()) => Ok(resource),
+            Ok(()) => {
+                self.events.publish(load.pull_events()).await;
+                Ok(resource)
+            }
             Err(LoadStoreError::Conflict) => Err(CreateLoadError::LoadConflict),
             Err(LoadStoreError::Unexpected) => unexpected(&self.logger),
         }
@@ -155,107 +161,13 @@ fn mint() -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::CreateLoadCommand;
-    use crate::domain::api::create_load::{
-        AddressInput, CreateLoad, CreateLoadError, CreateLoadInput, StopInput, StopKindPl,
-    };
-    use crate::domain::entities::load::Load;
-    use crate::domain::spi::load_store::{
-        IdempotencyRecord, IdempotencyStore, LoadStore, LoadStoreError,
-    };
-    use kernel::{FakeClock, Instant, Logger};
-
-    struct Silent;
-
-    impl Logger for Silent {
-        fn debug(&self, _msg: &str, _fields: &[(&str, &str)]) {}
-        fn info(&self, _msg: &str, _fields: &[(&str, &str)]) {}
-        fn warn(&self, _msg: &str, _fields: &[(&str, &str)]) {}
-        fn error(&self, _msg: &str, _fields: &[(&str, &str)]) {}
-    }
-
-    struct ConflictOnSave;
-
-    impl LoadStore for ConflictOnSave {
-        async fn get_by_id(&self, _id: &str) -> Result<Option<Load>, LoadStoreError> {
-            Ok(None)
-        }
-
-        async fn save(
-            &self,
-            _load: &Load,
-            _idempotency: Option<IdempotencyRecord>,
-        ) -> Result<(), LoadStoreError> {
-            Err(LoadStoreError::Conflict)
-        }
-    }
-
-    impl IdempotencyStore for ConflictOnSave {
-        async fn get(
-            &self,
-            _actor_id: &str,
-            _key: &str,
-        ) -> Result<Option<IdempotencyRecord>, LoadStoreError> {
-            Ok(None)
-        }
-    }
-
-    fn valid_input() -> CreateLoadInput {
-        CreateLoadInput {
-            shipper_id: "shipper-1".to_owned(),
-            stops: vec![
-                StopInput {
-                    kind: StopKindPl::Pickup,
-                    date: "2026-09-20".to_owned(),
-                    name: None,
-                    address: AddressInput {
-                        line1: "1 Dock".to_owned(),
-                        line2: None,
-                        city: "Dallas".to_owned(),
-                        region: "TX".to_owned(),
-                        postal_code: "75201".to_owned(),
-                        country: "US".to_owned(),
-                    },
-                },
-                StopInput {
-                    kind: StopKindPl::Delivery,
-                    date: "2026-09-21".to_owned(),
-                    name: Some("Consignee".to_owned()),
-                    address: AddressInput {
-                        line1: "9 Warehouse".to_owned(),
-                        line2: None,
-                        city: "Austin".to_owned(),
-                        region: "TX".to_owned(),
-                        postal_code: "78701".to_owned(),
-                        country: "US".to_owned(),
-                    },
-                },
-            ],
-        }
-    }
-
-    #[tokio::test]
-    async fn save_conflict_maps_to_load_conflict() {
-        let clock = FakeClock::new(Instant::from_unix_timestamp(1_700_000_000).unwrap());
-        let command = CreateLoadCommand {
-            store: ConflictOnSave,
-            clock,
-            logger: Silent,
-        };
-        let result = command
-            .create_load("actor-1".to_owned(), "key-1".to_owned(), valid_input())
-            .await;
-        assert!(matches!(result, Err(CreateLoadError::LoadConflict)));
-    }
-}
-
-#[cfg(test)]
 mod integration {
     use super::CreateLoadCommand;
     use crate::domain::api::create_load::{
         AddressInput, CreateLoad, CreateLoadError, CreateLoadInput, StopInput, StopKindPl,
     };
+    use crate::domain::events::LoadEvent;
+    use crate::domain::spi::load_events::FakeLoadEvents;
     use crate::domain::spi::load_store::{IdempotencyStore, LoadStore};
     use crate::infrastructure::load_store::SeaOrmLoadStore;
     use kernel::{FakeClock, Instant, Logger};
@@ -270,10 +182,11 @@ mod integration {
         fn error(&self, _msg: &str, _fields: &[(&str, &str)]) {}
     }
 
-    async fn command() -> CreateLoadCommand<SeaOrmLoadStore, FakeClock, Silent> {
+    async fn command() -> CreateLoadCommand<SeaOrmLoadStore, FakeLoadEvents, FakeClock, Silent> {
         let store = SeaOrmLoadStore::new(crate::infrastructure::test_db::migrated_pool().await);
         CreateLoadCommand {
             store,
+            events: FakeLoadEvents::new(),
             clock: clock(),
             logger: Silent,
         }
@@ -341,6 +254,12 @@ mod integration {
             .unwrap()
             .unwrap();
         assert_eq!(loaded.id, resource.id);
+        assert_eq!(
+            command.events.published(),
+            vec![LoadEvent::Created {
+                load_id: resource.id
+            }]
+        );
     }
 
     #[tokio::test]
@@ -355,6 +274,7 @@ mod integration {
             other => panic!("{other:?}"),
         }
         assert_eq!(command.store.get(&actor, &key).await.unwrap(), None);
+        assert_eq!(command.events.published(), vec![]);
     }
 
     #[tokio::test]
@@ -375,6 +295,10 @@ mod integration {
             .unwrap_or_else(|_| panic!("replay"));
         assert_eq!(first, second);
         assert_eq!(first.created_at, "2023-11-14T22:13:20.000Z");
+        assert_eq!(
+            command.events.published(),
+            vec![LoadEvent::Created { load_id: first.id }]
+        );
     }
 
     #[tokio::test]

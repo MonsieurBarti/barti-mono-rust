@@ -9,12 +9,13 @@ pub use crate::migrations::{Migrator, SCHEMA};
 pub use crate::presentation::http::{ActorId, CorrelationId};
 
 use crate::application::commands::create_load::CreateLoadCommand;
+use crate::infrastructure::load_events::InCellLoadEvents;
 use crate::infrastructure::load_store::SeaOrmLoadStore;
 use kernel::{Clock, Logger, Metrics};
 
 #[derive(Clone)]
 pub struct Loads<C, L, M> {
-    pub(crate) create_load: CreateLoadCommand<SeaOrmLoadStore, C, L>,
+    pub(crate) create_load: CreateLoadCommand<SeaOrmLoadStore, InCellLoadEvents, C, L>,
     #[allow(dead_code)]
     pub(crate) metrics: M,
 }
@@ -28,6 +29,7 @@ pub fn new<C: Clock, L: Logger, M: Metrics>(
     Loads {
         create_load: CreateLoadCommand {
             store: SeaOrmLoadStore::new(pool),
+            events: InCellLoadEvents,
             clock,
             logger,
         },
