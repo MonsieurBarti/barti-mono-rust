@@ -2,6 +2,8 @@
 
 Type: task
 Label: wayfinder:task
+Status: resolved
+
 Blocked by: 01, 02
 
 ## Question
@@ -19,3 +21,19 @@ Frontmatter is YAML `parseFrontmatter` accepts: `description`, `globs` as a list
 `AGENTS.md` gains a `### Hive law` section: three lines pointing at `docs/architecture.md` plus `docs/adr/`, `.omp/rules/`, and the two skills.
 
 Acceptance: nine rule files; every glob matches an existing path or a chapter-named path; a fresh omp session lists the eight layer rules in its rulebook and `rule://hive-domain` resolves; no rule line duplicates another rule's line.
+
+## Answer
+
+Nine rule files in `.omp/rules/`. `hive.md` is always-apply, 22 body lines, chapter-to-ADR table. Eight layer rules have `description` and `globs`. Native discovery puts those eight in the rulebook; `hive-domain` is among them so `rule://hive-domain` resolves.
+
+Omitted as compiler: `unreachable_pub`, `SystemTime::now` / `now_utc` / `now_local`, tracing and OpenTelemetry in cells, cell-to-cell crate imports.
+
+Stays prose: serde and garde outside `domain/api`; sqlx in domain or application; `Arc<dyn`; `async_trait`; `PgPool` on cell `new`; runtime `query()`.
+
+`hive-domain` has a `domain/api` section and a unit `Tests` section. `hive-application` has an integration `Tests` section. `hive-tests` is the e2e/`tests/` lane. Application, presentation, and `tests/` globs are chapter-named; the rest match existing paths. No duplicated rule line.
+
+`AGENTS.md` has a three-line `### Hive law` section.
+
+Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo deny check bans`, `cargo nextest run --workspace` (67 passed, 1 skipped). Compose Postgres was down. Db lane skipped.
+
+
