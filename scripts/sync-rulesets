@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Apply or check GitHub repository rulesets from .github/rulesets/*.json
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+DIR="$ROOT/.github/rulesets"
+REPO="${GITHUB_REPOSITORY:-MonsieurBarti/barti-mono-rust}"
+CMD="${1:-check}"
+
+canon() {
+  jq -S '{
+    name,
+    target,
+    enforcement,
+    bypass_actors: (.bypass_actors // []),
+    conditions,
+    rules: (.rules | sort_by(.type))
+  }'
+}
+
+live_by_name() {
+  local name="$1"
+  gh api "repos/$REPO/rulesets?includes_parents=false" --paginate \
+    | jq -c --arg name "$name" '.[] | select(.name == $name and .source_type == "Repository")'
+}
+
+apply_one() {
+  local file="$1"
+  local body name live id
+  body="$(canon <"$file")"
+  name="$(jq -r .name <<<"$body")"
+  live="$(live_by_name "$name" || true)"
+  if [[ -z "$live" ]]; then
+    gh api --method POST "repos/$REPO/rulesets" --input - <<<"$body" >/dev/null
+    echo "created $name"
+    return
+  fi
+  id="$(jq -r .id <<<"$live")"
+  gh api --method PUT "repos/$REPO/rulesets/$id" --input - <<<"$body" >/dev/null
+  echo "updated $name ($id)"
+}
+
+check_one() {
+  local file="$1"
+  local want name live got
+  want="$(canon <"$file")"
+  name="$(jq -r .name <<<"$want")"
+  live="$(live_by_name "$name" || true)"
+  if [[ -z "$live" ]]; then
+    echo "missing live ruleset: $name" >&2
+    return 1
+  fi
+  got="$(gh api "repos/$REPO/rulesets/$(jq -r .id <<<"$live")" | canon)"
+  if ! diff -u <(echo "$want") <(echo "$got"); then
+    echo "drift: $name" >&2
+    return 1
+  fi
+  echo "ok $name"
+}
+
+files=("$DIR"/*.json)
+if [[ ! -e "${files[0]}" ]]; then
+  echo "no rulesets in $DIR" >&2
+  exit 1
+fi
+
+case "$CMD" in
+  apply)
+    for f in "${files[@]}"; do apply_one "$f"; done
+    ;;
+  check)
+    failed=0
+    declared=()
+    for f in "${files[@]}"; do
+      declared+=("$(jq -r .name "$f")")
+      check_one "$f" || failed=1
+    done
+    extras="$(
+      gh api "repos/$REPO/rulesets?includes_parents=false" --paginate \
+        | jq -r --argjson names "$(printf '%s\n' "${declared[@]}" | jq -R . | jq -s .)" \
+          '.[] | select(.source_type == "Repository" and (.name as $n | $names | index($n) | not)) | .name'
+    )"
+    if [[ -n "$extras" ]]; then
+      echo "live rulesets not in $DIR:" >&2
+      echo "$extras" >&2
+      failed=1
+    fi
+    exit "$failed"
+    ;;
+  *)
+    echo "usage: $0 apply|check" >&2
+    exit 2
+    ;;
+esac
