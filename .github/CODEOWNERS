@@ -1,0 +1,11 @@
+# Last matching pattern wins. Domain folders are not owners.
+# A cell is the unit of ownership.
+
+* @MonsieurBarti
+
+/crates/kernel/ @MonsieurBarti
+/crates/app/ @MonsieurBarti
+
+/crates/cells/freight/loads/ @MonsieurBarti
+
+/.github/ @MonsieurBarti
