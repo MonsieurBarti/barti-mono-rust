@@ -1,0 +1,5 @@
+[bans]
+# Cell → app is a cargo error: app is bin-only, no lib target.
+deny = [
+    { crate = "loads", wrappers = ["app"], reason = "hive: only composition root depends on cells" },
+]
