@@ -7,7 +7,7 @@ Blocked by: 09, 14
 
 ## Question
 
-Port naboo chapter 7 onto this cell's Postgres schema.
+Port chapter 7 onto this cell's Postgres schema.
 
 Locked: sqlx; one schema per cell; outbox on the same save transaction. Persistence: [How is Postgres isolation enforced per cell?](09-postgres-cell-isolation.md). CQRS must already be decided: [How does CQRS work inside a Rust cell?](14-cqrs-inside-a-cell.md).
 
@@ -37,7 +37,6 @@ No foreign stream subscribe. Drain stays on [Where do ticks, queues, and workers
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Stream**.
 
-
 ## Comments
 
 ### Round 1
@@ -55,5 +54,3 @@ Seven arrows accepted:
 ### Round 2
 
 Q8 A: record that draft, add **Stream** to the glossary, close. Snapshot stays out of the glossary.
-
-

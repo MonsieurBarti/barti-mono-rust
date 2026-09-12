@@ -7,7 +7,7 @@ Blocked by: 07, 19
 
 ## Question
 
-Port naboo chapter 18. Hex platform kit does not exist.
+Port chapter 18. Hex platform kit does not exist.
 
 Locked: `crates/kernel` is a framework-free rlib; kernel to cell is illegal. Packaging: [How is a cell packaged, and what is the composition root without Nest?](07-cell-packaging-and-composition-root.md). Money, ids, dates, and Clock must already be decided: [How are Money, ids, and dates encoded in Published Language?](19-pl-scalars.md). Logger and Metrics implementations live in `app` as generics; cells declare the SPIs; domain never logs: [How do we observe a REST hive process?](17-observability.md).
 
@@ -80,4 +80,3 @@ Two arrows accepted (user: lgtm):
 ### Round 4
 
 Q11 A accepted. Draft recorded. Glossary written. Ticket closed.
-

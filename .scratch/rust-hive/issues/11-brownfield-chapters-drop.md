@@ -1,4 +1,4 @@
-# Which naboo chapters drop as brownfield-only?
+# Which chapters drop as brownfield-only?
 
 Type: grilling
 Status: resolved
@@ -9,9 +9,7 @@ Blocked by: 06
 
 The glossary killed neighbour, legacy bridge, promote, slice, hex platform kit, Nest module, AppModule, mongoose, sheriff, and Mongo collection.
 
-Decide which naboo architecture chapters, or chapter sections, this repo's `docs/architecture.md` must omit as brownfield-only. Decide which remaining chapters this map still has to grill.
-
-Do not write those chapters here. Source law: `/Users/pierrelecorff/Projects/naboo/docs/architecture.md`.
+Decide which architecture chapters, or chapter sections, this repo's `docs/architecture.md` must omit as brownfield-only. Decide which remaining chapters this map still has to grill.
 
 ## Answer
 
@@ -42,5 +40,3 @@ Q3 arrow accepted.
 - [What are the test lanes, and what does each one boot?](12-test-lanes.md) and [How does AuthN/AuthZ work at the REST process edge?](13-authn-rest-edge.md) stay.
 - Stack-pin ADR is a final task on this map.
 - Writing `docs/architecture.md` is the handoff after tickets are empty.
-
-

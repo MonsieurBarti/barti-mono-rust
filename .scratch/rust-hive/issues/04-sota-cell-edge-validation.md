@@ -7,7 +7,7 @@ Blocked by:
 
 ## Question
 
-How should a Rust cell validate Published Language at the API-port edge (primitives in, primitives out, `{ type, context }` errors), equivalent to naboo's Zod codecs beside each port?
+How should a Rust cell validate Published Language at the API-port edge (primitives in, primitives out, `{ type, context }` errors), equivalent to Zod codecs beside each port?
 
 Constraints:
 

@@ -7,7 +7,7 @@ Blocked by: 08, 10, 14
 
 ## Question
 
-Port naboo chapter 16. There are no legacy neighbour cron modules.
+Port chapter 16. There are no legacy neighbour cron modules.
 
 Locked: outbox drain is producer infrastructure, not a presentation worker. Communication: [How do cells communicate in Rust hive-strict?](08-hive-strict-communication.md). REST folders: [What is the public driving-adapter surface?](10-public-driving-adapters.md). Tick ports are unpublished and take no `actor_id`. CQRS must already be decided: [How does CQRS work inside a Rust cell?](14-cqrs-inside-a-cell.md).
 
@@ -36,7 +36,6 @@ Tick use-case and work drain are application integration: real sqlx, fake leavin
 A cell with no ticks has no `work` table, no `spawn_ticks`, and no `spawn_work_drain`.
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Tick**, **Work**, **WorkSink**, **Work drain**.
-
 
 ## Comments
 

@@ -7,7 +7,7 @@ Blocked by: 09
 
 ## Question
 
-Port naboo chapter 12 to Rust. Packaging is decided: unit tests live inside the cell crate and see `pub(crate)`, integration tests under the cell's `tests/` see only the re-export set, and `app` tests boot the binary. Tests construct a cell with fake SPIs and never boot the composition root.
+Port chapter 12 to Rust. Packaging is decided: unit tests live inside the cell crate and see `pub(crate)`, integration tests under the cell's `tests/` see only the re-export set, and `app` tests boot the binary. Tests construct a cell with fake SPIs and never boot the composition root.
 
 Decide: how many lanes, what each lane boots, which lane owns the sqlx adapter against a real schema, whether a fake SPI is a hand-written struct or a crate, the runner and its invocation, and whether a per-cell coverage floor is law.
 
@@ -42,7 +42,6 @@ Runner is cargo-nextest 0.9. Invocation is `cargo nextest run`. `cargo test` is 
 Event-capture shape waits on [How does CQRS work inside a Rust cell?](14-cqrs-inside-a-cell.md). Minor and patch pins wait on [Write the stack-pin ADR](22-stack-pin-adr.md).
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Fake**, **Builder**, **Contract**.
-
 
 ## Comments
 

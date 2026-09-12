@@ -7,7 +7,7 @@ Blocked by: 04, 10
 
 ## Question
 
-Port naboo chapter 11 to serde and garde.
+Port chapter 11 to serde and garde.
 
 Locked: serde + garde; value objects stay inside the hexagon; both sides of InProc encode and decode. Research: [What is the current SOTA Rust approach to Published Language validation at a cell edge?](04-sota-cell-edge-validation.md). Public REST: [What is the public driving-adapter surface?](10-public-driving-adapters.md).
 
@@ -22,7 +22,6 @@ Do not pick Money, ids, or dates here. Do not write the chapter here.
 Codec failures are shape and field constraints on PL primitives, including cross-field rules that need no entity. Entity invariants, VO `TryFrom`, and uniqueness against a loaded row are domain or SPI and never `VALIDATION_FAILED`. sqlx does not garde-parse this cell's own rows. A corrupt own row is a server bug. Infrastructure MAY serde+garde a foreign wire into SPI types. That failure is not `VALIDATION_FAILED`. Webhook: signature on the raw body, then this cell's input PL, then `decode`. A serde-to-violations helper in kernel waits on [What lives in the kernel crate?](20-kernel-crate.md).
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Codec**.
-
 
 ## Comments
 
@@ -46,6 +45,3 @@ Three arrows accepted:
 ### Round 3
 
 Q8 A: record that draft, close the ticket.
-
-
-

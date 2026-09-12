@@ -9,7 +9,7 @@ Blocked by: 10, 17
 
 Pin hive law for retries of mutating REST, if any.
 
-Locked: `CorrelationId` is not an idempotency key. Observability: [How do we observe a REST hive process?](17-observability.md). Public HTTP is REST: [What is the public driving-adapter surface?](10-public-driving-adapters.md). Integration-event consumers are already idempotent: [How do cells communicate in Rust hive-strict?](08-hive-strict-communication.md). Naboo kept a command pipeline as a per-cell choice, not hive law.
+Locked: `CorrelationId` is not an idempotency key. Observability: [How do we observe a REST hive process?](17-observability.md). Public HTTP is REST: [What is the public driving-adapter surface?](10-public-driving-adapters.md). Integration-event consumers are already idempotent: [How do cells communicate in Rust hive-strict?](08-hive-strict-communication.md).
 
 Decide: whether a hive-wide `Idempotency-Key` header exists; where the store lives; what a replay returns; whether expected revision is law or per-cell.
 
@@ -40,7 +40,6 @@ Command pipeline stays a per-cell choice. This header is not a pipeline. Each HT
 Missing header is cell e2e on `router`. Replay and `23505` are application integration, real sqlx, fake leaving SPIs.
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Idempotency-Key**.
-
 
 ## Comments
 
@@ -82,8 +81,3 @@ Two arrows accepted (user: lgtm):
 ### Round 5
 
 Q16 A accepted (user: lgtm). Draft recorded. Glossary written. Ticket closed.
-
-
-
-
-

@@ -7,7 +7,7 @@ Blocked by: 01, 05
 
 ## Question
 
-Port naboo chapters 2 and 3 to Rust.
+Port chapters 2 and 3 to Rust.
 
 The hive word for packaging is crate, not module. Decide workspace layout: crate-per-cell vs one crate with Rust mods; where the composition-root binary lives; how Open Host tokens are exported; how leaving SPIs are bound; the compile-time import wall.
 
@@ -23,7 +23,7 @@ InProc adapters live in `app`, not in the consumer crate. No cell crate ever pat
 
 Import wall: rustc crate privacy, `pub(crate)`, `unreachable_pub`, and cargo-deny `bans.deny` with `wrappers = ["app"]` per cell crate. Reject cell to cell, cell to `app`, kernel to cell. Features are not a wall.
 
-Cell identity tests port from naboo: too-small, too-big, chatty, and the remedy order (fatten Open Host, then local read model, then merge). Multi-aggregate allowed. Team ownership is not identity. Hop-count is review-only. Neighbour, legacy bridge, and promote tests drop.
+Cell identity tests port from: too-small, too-big, chatty, and the remedy order (fatten Open Host, then local read model, then merge). Multi-aggregate allowed. Team ownership is not identity. Hop-count is review-only. Neighbour, legacy bridge, and promote tests drop.
 
 Tests construct the cell with fake SPIs. They never boot `app`.
 
@@ -35,10 +35,10 @@ Glossary correction: [CONTEXT.md](../../../CONTEXT.md) **InProc adapter** is com
 
 Six arrows accepted: workspace paths; ported cell identity tests; InProc in `app` (option A) over consumer-crate InProc or a per-edge `*-inproc` crate; rustc plus cargo-deny wall; `app` as the only crate depending on cells; Open Host versus `pub(crate)` unpublished ports.
 
-InProc placement was the live tension. Naboo puts InProc in consumer `infrastructure/inproc/`, which in Cargo would make the consumer crate path-depend on the provider and hand every module in that crate a legal `use`. Rust cannot confine that import to one module, so the adapter moves to the composition root.
+InProc placement was the live tension. Put InProc in consumer `infrastructure/inproc/`, which in Cargo would make the consumer crate path-depend on the provider and hand every module in that crate a legal `use`. Rust cannot confine that import to one module, so the adapter moves to the composition root.
 
 ### Round 2
 
 Six arrows accepted: generics for leaving SPIs; the shortened allow/reject list; the `CONTEXT.md` InProc rewrite; the four in-cell layer modules; the `app` internal layout; bare cell name as package name.
 
-Consequence of Q3=A: naboo's "consumer inproc → provider `domain/api`" allow line does not get ported. It has no Cargo edge left to permit.
+Consequence of Q3=A: "consumer inproc → provider `domain/api`" allow line does not get ported. It has no Cargo edge left to permit.

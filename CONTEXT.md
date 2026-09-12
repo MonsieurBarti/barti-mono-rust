@@ -50,7 +50,7 @@ _Avoid_: SPI-means-only-cross-cell, calling an API port an SPI, value objects on
 
 **Write SPI**:
 `get_by_id` / `save` for one aggregate. Replay lives in the adapter.
-_Avoid_: find_by on this port, application importing sqlx, a unit-of-work port
+_Avoid_: find_by on this port, application importing sea_orm, a unit-of-work port
 
 **Stream**:
 The write model for an event-sourced aggregate: immutable event rows in that cell's schema.
@@ -76,9 +76,9 @@ _Avoid_: GraphQL resolver, MCP tool, injecting a foreign cell from presentation,
 An adapter that implements an SPI.
 _Avoid_: calling an adapter an API port or an SPI
 
-**sqlx adapter**:
-The driven adapter that talks to this cell's Postgres schema through sqlx. It holds that cell's named pool.
-_Avoid_: mongoose adapter, repository as the SPI, taking another cell's pool
+**sea-orm adapter**:
+The driven adapter that talks to this cell's Postgres schema through SeaORM. It holds that cell's named pool.
+_Avoid_: mongoose adapter, sqlx adapter, repository as the SPI, taking another cell's pool
 
 **InProc adapter**:
 Composition-root infrastructure that implements a consumer SPI by calling a provider API port, or a producer IntegrationEventSink by calling a consumer API port. Maps Published Language.
@@ -173,7 +173,7 @@ The Postgres LOGIN that owns one cell schema and runs DDL. The `app` migrate ent
 _Avoid_: NOLOGIN owner plus SET ROLE, one role that both migrates and serves, request pools using it, migrator DSN in serve env
 
 **Named pool**:
-The sqlx `PgPool` opened with that cell role's DSN, wrapped in a cell-private newtype, held by that cell's sqlx adapter. `app` constructs it. Cell `new` never takes it.
+The SeaORM `DatabaseConnection` opened with that cell role's DSN, wrapped in a cell-private newtype, held by that cell's sea-orm adapter. `app` constructs it. Cell `new` never takes it.
 _Avoid_: default pool, shared pool, SET ROLE, cell crate connecting itself
 
 **Fake**:
@@ -186,7 +186,7 @@ _Avoid_: a fixtures crate, asserting on faker output
 
 **Contract**:
 A function next to the SPI that every adapter of that SPI must pass. Not a spec.
-_Avoid_: a spec named contract, contract next to the sqlx adapter only
+_Avoid_: a spec named contract, contract next to the sea-orm adapter only
 
 **Fatten**:
 Add a use case to an existing cell that already speaks that language.

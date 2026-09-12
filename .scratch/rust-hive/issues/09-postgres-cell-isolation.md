@@ -7,7 +7,7 @@ Blocked by: 02, 07
 
 ## Question
 
-Port naboo chapter 6 from Mongo users/collections to Postgres. Shape is already locked: one database, schema per cell, one or more exclusive tables, one cell role per schema.
+Port chapter 6 from Mongo users/collections to Postgres. Shape is already locked: one database, schema per cell, one or more exclusive tables, one cell role per schema.
 
 Decide: GRANT shape, named pool per cell, no cross-cell transaction, how a planted import of another cell's tables fails at compile time and at runtime.
 

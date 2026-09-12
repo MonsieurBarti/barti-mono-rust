@@ -7,7 +7,7 @@ Blocked by: 01, 06
 
 ## Question
 
-Port naboo chapters 8–10 for a greenfield Rust hive.
+Port chapters 8–10 for a greenfield Rust hive.
 
 Decide: REST, GraphQL, MCP, or a subset. Default recommendation: HTTP REST via the chosen stack; MCP out of v1 unless a cell needs agent tools; GraphQL out unless a client exists.
 
@@ -34,7 +34,6 @@ Unhandled: HTTP 500, `type` is `about:blank`, `detail` is `Internal server error
 Health lives on `app`, not a cell, not Open Host. Webhook, PDF, and stream handlers are unpublished REST in `presentation/http/`. Auth routes stay fog. Workers stay fog.
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Driving adapter**, **ActorId**, **Unpublished**.
-
 
 ## Comments
 
@@ -67,6 +66,3 @@ Four arrows accepted:
 - Q13 A: `lib.rs` re-exports `pub fn router` beside `new`. It is not Open Host.
 - Q14 A: handler chooses 200, 201, or 204. 204 has no body. Success is never an envelope.
 - Q15 A: no pagination law. A list use-case owns its PL page shape.
-
-
-
