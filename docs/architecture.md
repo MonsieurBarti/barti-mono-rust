@@ -54,7 +54,7 @@ GraphQL, MCP, and legacy promotion are not chapters.
 
 ## 1. Language
 
-Grill: [What ubiquitous language does the Rust hive keep from naboo, and what Nest/Mongo terms die?](../.scratch/rust-hive/issues/06-rust-hive-glossary.md)
+Grill: [What ubiquitous language does the Rust hive keep from naboo, and what Nest/Mongo terms die?](../.scratch/rust-hive/issues/06-rust-hive-glossary.md) · ADR: [Language](adr/0002-language.md)
 
 ### Context
 
@@ -148,7 +148,7 @@ No repo-root `test/` that spans cells. Runner is chapter 10.
 
 ## 2. Cell
 
-Grill: [How is a cell packaged, and what is the composition root without Nest?](../.scratch/rust-hive/issues/07-cell-packaging-and-composition-root.md)
+Grill: [How is a cell packaged, and what is the composition root without Nest?](../.scratch/rust-hive/issues/07-cell-packaging-and-composition-root.md) · ADR: [Cell](adr/0003-cell.md)
 
 ### Context
 
@@ -197,7 +197,7 @@ Import wall is chapter 3. Postgres isolation is chapter 6.
 
 ## 3. Composition root
 
-Grill: [How is a cell packaged, and what is the composition root without Nest?](../.scratch/rust-hive/issues/07-cell-packaging-and-composition-root.md)
+Grill: [How is a cell packaged, and what is the composition root without Nest?](../.scratch/rust-hive/issues/07-cell-packaging-and-composition-root.md) · ADR: [Composition root](adr/0004-composition-root.md)
 
 ### Context
 
@@ -231,7 +231,7 @@ Tests construct the cell with fake SPIs. They never boot `app`. Hop-count stays 
 
 ## 4. Communication
 
-Grill: [How do cells communicate in Rust hive-strict?](../.scratch/rust-hive/issues/08-hive-strict-communication.md)
+Grill: [How do cells communicate in Rust hive-strict?](../.scratch/rust-hive/issues/08-hive-strict-communication.md) · ADR: [Communication](adr/0005-communication.md)
 
 ### Context
 
@@ -267,7 +267,7 @@ Swap InProc for HTTP/gRPC later. Domain and application of both cells stay uncha
 
 ## 5. CQRS
 
-Grill: [How does CQRS work inside a Rust cell?](../.scratch/rust-hive/issues/14-cqrs-inside-a-cell.md)
+Grill: [How does CQRS work inside a Rust cell?](../.scratch/rust-hive/issues/14-cqrs-inside-a-cell.md) · ADR: [CQRS](adr/0006-cqrs.md)
 
 ### Context
 
@@ -299,7 +299,7 @@ Driving adapters call the API port. Extra read tables wait on chapter 7.
 
 ## 6. Persistence
 
-Grill: [How is Postgres isolation enforced per cell?](../.scratch/rust-hive/issues/09-postgres-cell-isolation.md)
+Grill: [How is Postgres isolation enforced per cell?](../.scratch/rust-hive/issues/09-postgres-cell-isolation.md) · ADR: [Persistence](adr/0007-persistence.md)
 
 ### Context
 
@@ -329,7 +329,7 @@ Pool size is env. GRANT proof lives in `crates/app/tests`.
 
 ## 7. Event sourcing
 
-Grill: [Do we event-source, where, and what is the contract?](../.scratch/rust-hive/issues/15-event-sourcing.md)
+Grill: [Do we event-source, where, and what is the contract?](../.scratch/rust-hive/issues/15-event-sourcing.md) · ADR: [Event sourcing](adr/0008-event-sourcing.md)
 
 ### Context
 
@@ -363,7 +363,7 @@ Drain scheduling is chapter 13.
 
 ## 8. REST
 
-Grill: [What is the public driving-adapter surface?](../.scratch/rust-hive/issues/10-public-driving-adapters.md), [How are mutating REST commands made idempotent?](../.scratch/rust-hive/issues/23-rest-command-idempotency.md)
+Grill: [What is the public driving-adapter surface?](../.scratch/rust-hive/issues/10-public-driving-adapters.md), [How are mutating REST commands made idempotent?](../.scratch/rust-hive/issues/23-rest-command-idempotency.md) · ADR: [REST](adr/0009-rest.md)
 
 ### Context
 
@@ -429,7 +429,7 @@ AuthN mapping is chapter 12. Observability is chapter 11.
 
 ## 9. Validation
 
-Grill: [Where does the codec validate versus domain invariants?](../.scratch/rust-hive/issues/16-codec-versus-invariants.md)
+Grill: [Where does the codec validate versus domain invariants?](../.scratch/rust-hive/issues/16-codec-versus-invariants.md) · ADR: [Validation](adr/0010-validation.md)
 
 ### Context
 
@@ -449,7 +449,7 @@ How a garde failure looks to the REST client is chapter 8. Money, ids, and dates
 
 ## 10. Testing
 
-Grill: [What are the test lanes, and what does each one boot?](../.scratch/rust-hive/issues/12-test-lanes.md)
+Grill: [What are the test lanes, and what does each one boot?](../.scratch/rust-hive/issues/12-test-lanes.md) · ADR: [Testing](adr/0011-testing.md)
 
 ### Context
 
@@ -491,7 +491,7 @@ Cross-cell workflow tests are composition-root, later. Cell e2e never boots `app
 
 ## 11. Observability
 
-Grill: [How do we observe a REST hive process?](../.scratch/rust-hive/issues/17-observability.md)
+Grill: [How do we observe a REST hive process?](../.scratch/rust-hive/issues/17-observability.md) · ADR: [Observability](adr/0012-observability.md)
 
 ### Context
 
@@ -519,7 +519,7 @@ Tick and queue lines are chapter 13.
 
 ## 12. Authentication
 
-Grill: [How does AuthN/AuthZ work at the REST process edge?](../.scratch/rust-hive/issues/13-authn-rest-edge.md)
+Grill: [How does AuthN/AuthZ work at the REST process edge?](../.scratch/rust-hive/issues/13-authn-rest-edge.md) · ADR: [Authentication](adr/0013-authentication.md)
 
 ### Context
 
@@ -549,7 +549,7 @@ No product roles catalog. Worker `actor_id` is chapter 13.
 
 ## 13. Workers
 
-Grill: [Where do ticks, queues, and workers live?](../.scratch/rust-hive/issues/18-workers-and-ticks.md)
+Grill: [Where do ticks, queues, and workers live?](../.scratch/rust-hive/issues/18-workers-and-ticks.md) · ADR: [Workers](adr/0014-workers.md)
 
 ### Context
 
@@ -583,7 +583,7 @@ Product job catalog is out. Deployment of a second worker process is out.
 
 ## 14. Published Language scalars
 
-Grill: [How are Money, ids, and dates encoded in Published Language?](../.scratch/rust-hive/issues/19-pl-scalars.md)
+Grill: [How are Money, ids, and dates encoded in Published Language?](../.scratch/rust-hive/issues/19-pl-scalars.md) · ADR: [Published Language scalars](adr/0015-published-language-scalars.md)
 
 ### Context
 
@@ -615,7 +615,7 @@ Price as a catalog type is out. Product currency allowlist is out.
 
 ## 15. Shared kernel
 
-Grill: [What lives in the kernel crate?](../.scratch/rust-hive/issues/20-kernel-crate.md)
+Grill: [What lives in the kernel crate?](../.scratch/rust-hive/issues/20-kernel-crate.md) · ADR: [Shared kernel](adr/0016-shared-kernel.md)
 
 ### Context
 
@@ -662,7 +662,7 @@ Composition-root wiring stays chapter 3.
 
 ## 16. Freight
 
-Grill: [What freight ubiquitous language and first cells?](../.scratch/rust-hive/issues/21-freight-language-and-first-cells.md)
+Grill: [What freight ubiquitous language and first cells?](../.scratch/rust-hive/issues/21-freight-language-and-first-cells.md) · ADR: [Freight](adr/0017-freight.md)
 
 ### Context
 
