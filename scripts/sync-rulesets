@@ -7,12 +7,23 @@ DIR="$ROOT/.github/rulesets"
 REPO="${GITHUB_REPOSITORY:-MonsieurBarti/barti-mono-rust}"
 CMD="${1:-check}"
 
-canon() {
+# GITHUB_TOKEN cannot read bypass_actors. Apply still sends them.
+apply_body() {
   jq -S '{
     name,
     target,
     enforcement,
     bypass_actors: (.bypass_actors // []),
+    conditions,
+    rules
+  }'
+}
+
+check_canon() {
+  jq -S '{
+    name,
+    target,
+    enforcement,
     conditions,
     rules: (.rules | sort_by(.type))
   }'
@@ -27,7 +38,7 @@ live_by_name() {
 apply_one() {
   local file="$1"
   local body name live id
-  body="$(canon <"$file")"
+  body="$(apply_body <"$file")"
   name="$(jq -r .name <<<"$body")"
   live="$(live_by_name "$name" || true)"
   if [[ -z "$live" ]]; then
@@ -43,14 +54,14 @@ apply_one() {
 check_one() {
   local file="$1"
   local want name live got
-  want="$(canon <"$file")"
+  want="$(check_canon <"$file")"
   name="$(jq -r .name <<<"$want")"
   live="$(live_by_name "$name" || true)"
   if [[ -z "$live" ]]; then
     echo "missing live ruleset: $name" >&2
     return 1
   fi
-  got="$(gh api "repos/$REPO/rulesets/$(jq -r .id <<<"$live")" | canon)"
+  got="$(gh api "repos/$REPO/rulesets/$(jq -r .id <<<"$live")" | check_canon)"
   if ! diff -u <(echo "$want") <(echo "$got"); then
     echo "drift: $name" >&2
     return 1
