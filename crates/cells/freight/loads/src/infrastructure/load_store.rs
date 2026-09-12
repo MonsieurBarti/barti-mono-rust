@@ -1,9 +1,12 @@
 use crate::domain::entities::load::{Load, LoadRow, StopRow, from_rows, to_rows};
-use crate::domain::spi::load_store::{IdempotencyRecord, LoadStore, LoadStoreError};
+use crate::domain::spi::load_store::{
+    IdempotencyRecord, IdempotencyStore, LoadStore, LoadStoreError,
+};
 use crate::infrastructure::LoadsPool;
 use kernel::Instant;
 use uuid::Uuid;
 
+#[derive(Clone)]
 pub(crate) struct SqlxLoadStore {
     pool: LoadsPool,
 }
@@ -172,6 +175,38 @@ impl LoadStore for SqlxLoadStore {
             }
             tx.commit().await.map_err(map_err)?;
             Ok(())
+        }
+    }
+}
+
+impl IdempotencyStore for SqlxLoadStore {
+    fn get(
+        &self,
+        actor_id: &str,
+        key: &str,
+    ) -> impl Future<Output = Result<Option<IdempotencyRecord>, LoadStoreError>> + Send {
+        let pool = self.pool.inner().clone();
+        let actor_id = actor_id.to_owned();
+        let key = key.to_owned();
+        async move {
+            let row = sqlx::query!(
+                r#"
+                SELECT actor_id, key, fingerprint, outcome
+                FROM loads.idempotency_key
+                WHERE actor_id = $1 AND key = $2
+                "#,
+                actor_id,
+                key
+            )
+            .fetch_optional(&pool)
+            .await
+            .map_err(map_err)?;
+            Ok(row.map(|row| IdempotencyRecord {
+                actor_id: row.actor_id,
+                key: row.key,
+                fingerprint: row.fingerprint,
+                outcome: row.outcome,
+            }))
         }
     }
 }

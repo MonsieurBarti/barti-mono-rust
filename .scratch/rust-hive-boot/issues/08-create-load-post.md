@@ -1,6 +1,8 @@
 # POST a Load with Idempotency-Key
 
 Type: task
+Status: resolved
+
 Label: wayfinder:task
 Blocked by: 03, 06, 07
 
@@ -17,3 +19,14 @@ Create-load may stay `pub(crate)` if no other cell should call it. `lib.rs` stil
 Unit: codec and Load invariants. Integration: happy path, error, replay, `23505`; real sqlx; fake leaving SPIs. E2E: `router` with tower; missing header; one happy POST. Never boot `app` from this cell. Use tdd.
 
 Do not add GET or list. Do not add Quote.
+
+## Answer
+
+`POST /loads` is the create-load driving adapter. Create-load stays `pub(crate)`. `lib.rs` exports `new` and `router`. `new` wraps the named `PgPool` in `LoadsPool` and binds `Clock`, `Logger`, and `Metrics`. `app serve` nests `loads::router`.
+
+Body is ticket 03 PL. Codec `decode` is the first act. Header `Idempotency-Key` is required in presentation: missing, empty, or over-length is `VALIDATION_FAILED` and never enters the cell. Port takes `actor_id` and `idempotency_key` as strings. Success is 201 Load JSON. Handler has no business logic.
+
+Idempotency SPI `get` is a committed read. Matching fingerprint replays the stored `Result`. Mismatch is `VALIDATION_FAILED`. Miss runs the command. `save` writes the idempotency row on the same transaction as the Load. Store success. Do not store 5xx or garde failures. `23505` is `LOAD_CONFLICT` → 409. Envelope is `{ type, context }` at the port. Public document is problem+json.
+
+Proof: 91 tests green including codec, Load invariants, sqlx happy/error/replay/`23505`, and tower e2e (missing header + happy POST). Cell tests never boot `app`. `cargo clippy --workspace --all-targets -D warnings` and `cargo deny check bans` clean.
+

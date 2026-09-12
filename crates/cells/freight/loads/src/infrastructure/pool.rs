@@ -1,5 +1,6 @@
 use sqlx::PgPool;
 
+#[derive(Clone)]
 pub(crate) struct LoadsPool(PgPool);
 
 impl LoadsPool {

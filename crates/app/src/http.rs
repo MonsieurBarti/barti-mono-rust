@@ -19,14 +19,11 @@ const SLOW_MS: u64 = 3000;
 #[derive(Clone)]
 struct CorrelationId(String);
 
-// ponytail: read only by the test probe until ticket 08 lands `loads::router`.
 #[derive(Clone)]
-#[cfg_attr(not(test), allow(dead_code))]
 struct ActorId(String);
 
-// `loads` exports no `router` yet (ticket 08). Nest it here when it does.
-pub(crate) fn router() -> Router {
-    layered(Router::new().route("/health", get(health)))
+pub(crate) fn router(loads: Router) -> Router {
+    layered(Router::new().route("/health", get(health)).merge(loads))
 }
 
 fn layered(router: Router) -> Router {

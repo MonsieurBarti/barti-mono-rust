@@ -12,8 +12,6 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let telemetry = telemetry::init()?;
     let env = ServeEnv::from_get(|key| std::env::var(key).ok())?;
 
-    // Ticket 07 wraps this pool in the loads cell-private newtype, and ticket 08
-    // passes the clock, logger, and metrics into `loads::new`.
     let loads_pool = loads_pool(&env.loads_database_url, env.loads_pool_max).await?;
     let clock = SystemClock;
     let logger = TracingLogger;
@@ -31,9 +29,10 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
         ],
     );
     metrics.increment("hive.app.serve_started", 1, &[("cell", "loads")]);
+    let loads = loads::new(loads_pool, clock, logger, metrics);
 
     let listener = TcpListener::bind(BIND).await?;
-    axum::serve(listener, http::router())
+    axum::serve(listener, http::router(loads::router(&loads)))
         .with_graceful_shutdown(async {
             let _ = tokio::signal::ctrl_c().await;
         })

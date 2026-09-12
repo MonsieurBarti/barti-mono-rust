@@ -6,6 +6,7 @@ pub trait Clock: Send + Sync {
     fn now(&self) -> Instant;
 }
 
+#[derive(Clone, Copy)]
 pub struct SystemClock;
 
 impl Clock for SystemClock {
@@ -38,6 +39,12 @@ impl FakeClock {
         self.now
             .lock()
             .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+impl Clone for FakeClock {
+    fn clone(&self) -> Self {
+        Self::new(self.now())
     }
 }
 

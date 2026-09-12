@@ -68,7 +68,6 @@ impl Load {
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn create(
         id: String,
         shipper_id: String,
@@ -76,15 +75,40 @@ impl Load {
         created_at: Instant,
         pickup: Stop,
         delivery: Stop,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, LoadError> {
+        if shipper_id.trim().is_empty() {
+            return Err(LoadError::EmptyShipperId);
+        }
+        if actor_id.trim().is_empty() {
+            return Err(LoadError::EmptyActorId);
+        }
+        if pickup.kind != StopKind::Pickup || delivery.kind != StopKind::Delivery {
+            return Err(LoadError::StopKinds);
+        }
+        match &delivery.name {
+            Some(name) if !name.trim().is_empty() => {}
+            _ => return Err(LoadError::MissingConsignee),
+        }
+        if delivery.date < pickup.date {
+            return Err(LoadError::DeliveryBeforePickup);
+        }
+        Ok(Self {
             id,
             shipper_id,
             actor_id,
             created_at,
             stops: vec![pickup, delivery],
-        }
+        })
     }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) enum LoadError {
+    EmptyShipperId,
+    EmptyActorId,
+    StopKinds,
+    MissingConsignee,
+    DeliveryBeforePickup,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -225,6 +249,16 @@ impl LoadBuilder {
         self
     }
 
+    pub(crate) fn shipper_id(mut self, shipper_id: impl Into<String>) -> Self {
+        self.shipper_id = shipper_id.into();
+        self
+    }
+
+    pub(crate) fn delivery_date(mut self, date: impl Into<String>) -> Self {
+        self.delivery_date = date.into();
+        self
+    }
+
     pub(crate) fn build(self) -> Load {
         let (id, shipper_id, actor_id, created_at, pickup, delivery) = self.into_parts();
         Load::reconstitute(id, shipper_id, actor_id, created_at, vec![pickup, delivery])
@@ -233,6 +267,7 @@ impl LoadBuilder {
     pub(crate) fn build_new(self) -> Load {
         let (id, shipper_id, actor_id, created_at, pickup, delivery) = self.into_parts();
         Load::create(id, shipper_id, actor_id, created_at, pickup, delivery)
+            .expect("builder fixture is valid")
     }
 
     fn into_parts(self) -> (String, String, String, Instant, Stop, Stop) {
@@ -275,7 +310,7 @@ impl LoadBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::{LoadBuilder, from_rows, to_rows};
+    use super::{Load, LoadBuilder, LoadError, from_rows, to_rows};
 
     #[test]
     fn mapper_round_trips_a_load_without_optionals() {
@@ -302,5 +337,44 @@ mod tests {
         let restored = from_rows(row, stops);
         assert_eq!(restored.stops[0].kind, super::StopKind::Pickup);
         assert_eq!(restored.stops[1].kind, super::StopKind::Delivery);
+    }
+
+    #[test]
+    fn create_accepts_two_typed_stops() {
+        let load = LoadBuilder::new().build_new();
+        assert_eq!(load.shipper_id, "shipper-1");
+        assert_eq!(load.stops[0].kind, super::StopKind::Pickup);
+        assert_eq!(load.stops[1].kind, super::StopKind::Delivery);
+    }
+
+    #[test]
+    fn create_rejects_empty_shipper_id() {
+        let (id, _, actor_id, created_at, pickup, delivery) =
+            LoadBuilder::new().shipper_id("  ").into_parts();
+        assert_eq!(
+            Load::create(id, "  ".to_owned(), actor_id, created_at, pickup, delivery),
+            Err(LoadError::EmptyShipperId)
+        );
+    }
+
+    #[test]
+    fn create_rejects_missing_consignee() {
+        let (id, shipper_id, actor_id, created_at, pickup, mut delivery) =
+            LoadBuilder::new().into_parts();
+        delivery.name = None;
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::MissingConsignee)
+        );
+    }
+
+    #[test]
+    fn create_rejects_delivery_before_pickup() {
+        let (id, shipper_id, actor_id, created_at, pickup, delivery) =
+            LoadBuilder::new().delivery_date("2026-09-19").into_parts();
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::DeliveryBeforePickup)
+        );
     }
 }

@@ -7,6 +7,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, fmt};
 
+#[derive(Clone, Copy)]
 pub(crate) struct TracingLogger;
 
 macro_rules! emit {
@@ -50,6 +51,7 @@ impl Logger for TracingLogger {
     }
 }
 
+#[derive(Clone)]
 pub(crate) struct AppMetrics {
     meter: Meter,
 }

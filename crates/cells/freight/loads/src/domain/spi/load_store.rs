@@ -31,8 +31,16 @@ pub(crate) trait LoadStore {
     ) -> impl Future<Output = Result<(), LoadStoreError>> + Send;
 }
 
+pub(crate) trait IdempotencyStore {
+    fn get(
+        &self,
+        actor_id: &str,
+        key: &str,
+    ) -> impl Future<Output = Result<Option<IdempotencyRecord>, LoadStoreError>> + Send;
+}
+
 #[cfg(any(test, feature = "contract"))]
-pub(crate) async fn load_store_contract<S: LoadStore>(
+pub(crate) async fn load_store_contract<S: LoadStore + IdempotencyStore>(
     store: &S,
     missing_id: &str,
     load: &Load,
@@ -40,15 +48,27 @@ pub(crate) async fn load_store_contract<S: LoadStore>(
     record: IdempotencyRecord,
 ) {
     assert_eq!(store.get_by_id(missing_id).await.unwrap(), None);
+    assert_eq!(
+        store.get(&record.actor_id, &record.key).await.unwrap(),
+        None
+    );
     store.save(load, None).await.unwrap();
     assert_eq!(
         store.get_by_id(&load.id).await.unwrap().as_ref(),
         Some(load)
     );
-    store.save(keyed, Some(record)).await.unwrap();
+    store.save(keyed, Some(record.clone())).await.unwrap();
     assert_eq!(
         store.get_by_id(&keyed.id).await.unwrap().as_ref(),
         Some(keyed)
+    );
+    assert_eq!(
+        store
+            .get(&record.actor_id, &record.key)
+            .await
+            .unwrap()
+            .as_ref(),
+        Some(&record)
     );
 }
 
@@ -118,6 +138,23 @@ impl LoadStore for FakeLoadStore {
     ) -> impl Future<Output = Result<(), LoadStoreError>> + Send {
         let result = self.insert(load, idempotency);
         async move { result }
+    }
+}
+
+#[cfg(test)]
+impl IdempotencyStore for FakeLoadStore {
+    fn get(
+        &self,
+        actor_id: &str,
+        key: &str,
+    ) -> impl Future<Output = Result<Option<IdempotencyRecord>, LoadStoreError>> + Send {
+        let found = self
+            .keys
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .get(&(actor_id.to_owned(), key.to_owned()))
+            .cloned();
+        async move { Ok(found) }
     }
 }
 
