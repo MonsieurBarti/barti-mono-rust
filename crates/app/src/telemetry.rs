@@ -7,7 +7,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, fmt};
 
-pub struct TracingLogger;
+pub(crate) struct TracingLogger;
 
 macro_rules! emit {
     ($level:ident, $msg:expr, $fields:expr) => {{
@@ -50,12 +50,12 @@ impl Logger for TracingLogger {
     }
 }
 
-pub struct AppMetrics {
+pub(crate) struct AppMetrics {
     meter: Meter,
 }
 
 impl AppMetrics {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self {
             meter: opentelemetry::global::meter("hive"),
         }
@@ -89,7 +89,7 @@ fn log_filter(raw: Option<String>) -> EnvFilter {
     }
 }
 
-pub struct Telemetry {
+pub(crate) struct Telemetry {
     tracer: Option<SdkTracerProvider>,
     meter: Option<SdkMeterProvider>,
 }
@@ -105,7 +105,7 @@ impl Drop for Telemetry {
     }
 }
 
-pub fn init() -> Result<Telemetry, Box<dyn std::error::Error>> {
+pub(crate) fn init() -> Result<Telemetry, Box<dyn std::error::Error>> {
     let filter = log_filter(std::env::var("LOG_LEVEL").ok());
     let fmt_layer = fmt::layer().json();
 

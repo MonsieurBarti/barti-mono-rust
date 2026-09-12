@@ -1,7 +1,7 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub struct BootError {
+pub(crate) struct BootError {
     var: &'static str,
     kind: BootErrorKind,
 }
@@ -40,12 +40,12 @@ impl fmt::Display for BootError {
 impl std::error::Error for BootError {}
 
 #[derive(Debug)]
-pub struct MigrateEnv {
-    pub loads_migrator_database_url: String,
+pub(crate) struct MigrateEnv {
+    pub(crate) loads_migrator_database_url: String,
 }
 
 impl MigrateEnv {
-    pub fn from_get(get: impl Fn(&str) -> Option<String>) -> Result<Self, BootError> {
+    pub(crate) fn from_get(get: impl Fn(&str) -> Option<String>) -> Result<Self, BootError> {
         let loads_migrator_database_url = required(&get, "LOADS_MIGRATOR_DATABASE_URL")?;
         Ok(Self {
             loads_migrator_database_url,
@@ -54,13 +54,13 @@ impl MigrateEnv {
 }
 
 #[derive(Debug)]
-pub struct ServeEnv {
-    pub loads_database_url: String,
-    pub loads_pool_max: u32,
+pub(crate) struct ServeEnv {
+    pub(crate) loads_database_url: String,
+    pub(crate) loads_pool_max: u32,
 }
 
 impl ServeEnv {
-    pub fn from_get(get: impl Fn(&str) -> Option<String>) -> Result<Self, BootError> {
+    pub(crate) fn from_get(get: impl Fn(&str) -> Option<String>) -> Result<Self, BootError> {
         let loads_database_url = required(&get, "LOADS_DATABASE_URL")?;
         let loads_pool_max = required(&get, "LOADS_POOL_MAX")?
             .parse()

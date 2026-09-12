@@ -6,9 +6,9 @@ use sqlx::PgPool;
 use sqlx::postgres::PgPoolOptions;
 use tokio::net::TcpListener;
 
-pub const BIND: &str = "127.0.0.1:8080";
+pub(crate) const BIND: &str = "127.0.0.1:8080";
 
-pub async fn run() -> Result<(), Box<dyn std::error::Error>> {
+pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let telemetry = telemetry::init()?;
     let env = ServeEnv::from_get(|key| std::env::var(key).ok())?;
 

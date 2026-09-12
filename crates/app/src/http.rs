@@ -25,7 +25,7 @@ struct CorrelationId(String);
 struct ActorId(String);
 
 // `loads` exports no `router` yet (ticket 08). Nest it here when it does.
-pub fn router() -> Router {
+pub(crate) fn router() -> Router {
     layered(Router::new().route("/health", get(health)))
 }
 

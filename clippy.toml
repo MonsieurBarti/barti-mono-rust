@@ -1,0 +1,5 @@
+disallowed-methods = [
+    { path = "std::time::SystemTime::now", reason = "inject kernel Clock" },
+    { path = "time::OffsetDateTime::now_utc", reason = "inject kernel Clock" },
+    { path = "time::OffsetDateTime::now_local", reason = "inject kernel Clock", allow-invalid = true },
+]

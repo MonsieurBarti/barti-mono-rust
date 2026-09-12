@@ -9,6 +9,7 @@ pub trait Clock: Send + Sync {
 pub struct SystemClock;
 
 impl Clock for SystemClock {
+    #[expect(clippy::disallowed_methods)]
     fn now(&self) -> Instant {
         Instant::from_utc(OffsetDateTime::now_utc())
     }

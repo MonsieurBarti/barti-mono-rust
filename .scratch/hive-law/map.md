@@ -18,6 +18,7 @@ Label: wayfinder:map
 
 ## Decisions so far
 - [Write ADRs 0002 through 0017](issues/01-write-adrs.md) — one ADR per chapter; each Grill line links it.
+- [Harden the compile wall](issues/02-harden-the-compile-wall.md) — unreachable_pub, clippy now(), deny per-cell comment; module-grain stays prose.
 
 ## Not yet specified
 
