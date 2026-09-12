@@ -8,5 +8,7 @@ edition = "2024"
 rust-version = "1.98.1"
 
 [workspace.dependencies]
+time = "0.3.55"
 kernel = { path = "crates/kernel" }
 loads = { path = "crates/cells/freight/loads" }
+
