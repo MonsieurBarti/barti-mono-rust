@@ -17,3 +17,4 @@ Single-context until the first cell glossary lands. See `docs/agents/domain.md`.
 Law is [docs/architecture.md](docs/architecture.md) and [docs/adr/](docs/adr/).
 Layer rules live in `.omp/rules/`.
 Ship and review with `.omp/skills/ship-ticket` and `.omp/skills/review-change`.
+Public REST, Open Host, cell handbook, cell glossary, or a new cell: `.omp/skills/cell-docs`.

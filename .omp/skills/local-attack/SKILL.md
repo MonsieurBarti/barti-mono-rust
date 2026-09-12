@@ -1,6 +1,6 @@
 ---
 name: local-attack
-description: Attack a hive branch or PR against live local HTTP. Use when ship-ticket step 5 runs, when the target is a PR, or when endpoints need compose Postgres.
+description: Attack a hive branch or PR against live local HTTP. Use when ship-ticket step 6 runs, when the target is a PR, or when endpoints need compose Postgres.
 ---
 
 # Attack a change
@@ -27,7 +27,7 @@ On that PR's worktree, also `git diff --name-only origin/<base>` so unstaged fil
 
 Otherwise `git diff --name-only origin/main`. That set includes staged and unstaged tracked files. Ship-ticket attacks before commit.
 
-Skip when every path is under `docs/`, `.omp/`, `.scratch/`, or is `CONTEXT.md`. Chat `local-attack: green (no surface)`.
+Skip when every path is under `docs/`, `.omp/`, `.scratch/`, or is `CONTEXT.md` or `AGENTS.md`. Chat `local-attack: green (no surface)`.
 
 Otherwise the surface is every public route of every cell the diff touches. Read routes from that cell's `presentation/http`. A change in `crates/app`, `crates/kernel`, `postgres/`, `compose.yaml`, or `.env.example` includes every cell.
 
