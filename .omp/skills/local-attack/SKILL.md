@@ -5,7 +5,7 @@ description: Attack a hive branch against live local HTTP. Use when ship-ticket 
 
 # Attack a change
 
-Diff is `origin/main...HEAD`. Attack hits live `app serve`. The lock is a hive-tests cargo test. Green when every planned case passed and every new lock bit.
+Diff is the working tree against `origin/main`. Attack hits live `app serve`. The lock is a hive-tests cargo test. Green when every planned case passed and every new lock bit.
 
 If this checkout is a worktree, read `skill://omp-worktree-absolute-paths` and prefix every path and command.
 
@@ -15,7 +15,9 @@ Never SQL seed. Never point serve at `hive_test`. Never bind a server from a car
 
 ## 1. Surface
 
-`git fetch origin main` then `git diff origin/main...HEAD --name-only`.
+`git fetch origin main` then `git diff --name-only origin/main`.
+
+That set includes staged and unstaged tracked files. Ship-ticket attacks before commit.
 
 Skip when every path is under `docs/`, `.omp/`, `.scratch/`, or is `CONTEXT.md`. Chat `local-attack: green (no surface)`.
 
@@ -27,21 +29,29 @@ Done when the skip line is in chat, or the route list exists.
 
 Write `.scratch/attack-plan.md`. Do not commit it.
 
-For each route: happy path, documented failures, missing actor header, other actor's resource, replayed idempotency key, different body same key, and multi-row state the diff can break. Preconditions are HTTP calls in this file. Human REST headers live in `crates/app/src/http.rs`. POST and PATCH follow the cell handler's idempotency rules.
+For each route: happy path, documented failures, missing actor header, other actor's resource, replayed idempotency key, different body same key, and multi-row state the diff can break. Preconditions are HTTP calls in this file. Human REST headers live in `crates/app/src/http.rs`. POST and PATCH follow the cell handler's idempotency rules. Different body same key is whatever that handler returns. Concurrent save may be 409.
 
 Done when the file lists every route and every case.
 
 ## 3. Boot
 
+Export product `LOADS_MIGRATOR_DATABASE_URL`, `LOADS_DATABASE_URL`, and `LOADS_POOL_MAX` from the `hive` lines in `.env.example`. App does not load `.env`.
+
+If that migrator DSN already accepts a connection, skip compose.
+
+Otherwise:
+
 ```
 docker compose up -d --wait
 ```
 
-Export product `LOADS_MIGRATOR_DATABASE_URL`, `LOADS_DATABASE_URL`, and `LOADS_POOL_MAX` from the `hive` lines in `.env.example`. App does not load `.env`. Then `cargo run -- migrate`.
+If `up` fails because 5432 is already bound, reuse that listener. Tear down a compose project this run created that never became ready.
 
-TRUNCATE each touched cell as the migrator on database `hive`. SQL lives in that cell's `test_db.rs` (or its migrations).
+Then `cargo run -- migrate`.
 
-Start `cargo run -- serve` as a long-running process. Ready when `GET {BIND}/health` is 200. `BIND` is `crates/app/src/serve.rs`. If the port is taken, stop. Do not steal it.
+Copy the `TRUNCATE` SQL from each touched cell's `test_db.rs`. Run it as that cell's migrator against database `hive`. Do not call `migrated_pool`.
+
+Start `cargo run -- serve` as a long-running process. Ready when `GET {BIND}/health` is 200. `BIND` is `crates/app/src/serve.rs`. If the port is taken, stop. Do not steal it. Do not wait on a log line.
 
 Done when `/health` is 200.
 
