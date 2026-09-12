@@ -1,11 +1,11 @@
 ---
 name: local-attack
-description: Attack a hive branch against live local HTTP. Use when ship-ticket step 5 runs, or when a change needs its endpoints tried on compose Postgres.
+description: Attack a hive branch or PR against live local HTTP. Use when ship-ticket step 5 runs, when the target is a PR, or when endpoints need compose Postgres.
 ---
 
 # Attack a change
 
-Diff is the working tree against `origin/main`. Attack hits live `app serve`. The lock is a hive-tests cargo test. Green when every planned case passed and every new lock bit.
+Diff is the working tree against `origin/main`, or a PR against its base. Attack hits live `app serve`. The lock is a hive-tests cargo test. Green when every planned case passed and every new lock bit.
 
 If this checkout is a worktree, read `skill://omp-worktree-absolute-paths` and prefix every path and command.
 
@@ -15,9 +15,17 @@ Never SQL seed. Never point serve at `hive_test`. Never bind a server from a car
 
 ## 1. Surface
 
-`git fetch origin main` then `git diff --name-only origin/main`.
+`git fetch origin main`.
 
-That set includes staged and unstaged tracked files. Ship-ticket attacks before commit.
+If the target is a PR number:
+
+```
+gh pr diff <n> --name-only
+```
+
+On that PR's worktree, also `git diff --name-only origin/<base>` so unstaged files count. `<base>` is `gh pr view <n> --json baseRefName`.
+
+Otherwise `git diff --name-only origin/main`. That set includes staged and unstaged tracked files. Ship-ticket attacks before commit.
 
 Skip when every path is under `docs/`, `.omp/`, `.scratch/`, or is `CONTEXT.md`. Chat `local-attack: green (no surface)`.
 
@@ -75,8 +83,14 @@ Done when every planned case passed and every new lock bit.
 
 ## 6. Tear down
 
-Stop the serve this run started. TRUNCATE again. Leave compose up. Delete `.scratch/attack-plan.md`.
+Stop the serve this run started. TRUNCATE again. Leave compose up.
+
+The campaign is the plan with every case status, then `local-attack: green` or `local-attack: red`.
+
+If this branch has a PR, write that campaign into the PR body's Attack campaign section. Then delete `.scratch/attack-plan.md`.
+
+If there is no PR, leave `.scratch/attack-plan.md` for ship-ticket.
 
 Chat `local-attack: green` or `local-attack: red` with the remaining findings.
 
-Done when `BIND` is down, cell tables are empty, and chat has the line.
+Done when `BIND` is down, cell tables are empty, the campaign is in the PR body or the plan file, and chat has the line.
