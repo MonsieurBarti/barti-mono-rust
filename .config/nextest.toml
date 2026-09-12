@@ -1,2 +1,10 @@
 [profile.default]
 default-filter = "not test(/::integration::/) and not (package(loads) and kind(test))"
+
+[profile.integration]
+default-filter = "test(/::integration::/)"
+test-threads = 1
+
+[profile.e2e]
+default-filter = "package(loads) and kind(test)"
+test-threads = 1

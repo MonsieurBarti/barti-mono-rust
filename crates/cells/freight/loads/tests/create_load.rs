@@ -21,10 +21,26 @@ impl Metrics for Silent {
     fn distribution(&self, _name: &str, _value: f64, _tags: &[(&str, &str)]) {}
 }
 
+fn assert_test_db(url: &str) {
+    let name = url
+        .rsplit('/')
+        .next()
+        .unwrap_or("")
+        .split('?')
+        .next()
+        .unwrap_or("");
+    assert_eq!(
+        name, "hive_test",
+        "db tests must use hive_test (scripts/test-e2e)"
+    );
+}
+
 async fn cell_router() -> axum::Router {
     let migrator_url = std::env::var("LOADS_MIGRATOR_DATABASE_URL")
         .expect("LOADS_MIGRATOR_DATABASE_URL is required");
     let cell_url = std::env::var("LOADS_DATABASE_URL").expect("LOADS_DATABASE_URL is required");
+    assert_test_db(&migrator_url);
+    assert_test_db(&cell_url);
     let mut options = ConnectOptions::new(migrator_url);
     options
         .max_connections(1)
@@ -37,11 +53,17 @@ async fn cell_router() -> axum::Router {
         .await
         .expect("migration lock");
     let migrated = loads::Migrator::up(&migrator, None).await;
+    let truncated = migrator
+        .execute_unprepared(
+            "TRUNCATE TABLE loads.load, loads.stop, loads.idempotency_key RESTART IDENTITY CASCADE",
+        )
+        .await;
     migrator
         .execute_unprepared("SELECT pg_advisory_unlock(20260912)")
         .await
         .expect("migration unlock");
     migrated.expect("loads migrations");
+    truncated.expect("truncate loads tables");
     migrator.close().await.expect("close migrator");
     let connection = Database::connect(cell_url)
         .await
