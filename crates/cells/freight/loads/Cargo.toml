@@ -20,6 +20,8 @@ serde_path_to_error.workspace = true
 sea-orm.workspace = true
 sea-orm-migration.workspace = true
 uuid.workspace = true
+utoipa.workspace = true
+utoipa-axum.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true

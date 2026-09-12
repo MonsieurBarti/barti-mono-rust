@@ -1,17 +1,57 @@
 use super::{ActorId, CorrelationId};
 use crate::Loads;
-use crate::domain::api::create_load::{CreateLoad, CreateLoadError, CreateLoadInput, ViolationDto};
+use crate::domain::api::create_load::{
+    CreateLoad, CreateLoadError, CreateLoadInput, LoadResource, ViolationDto,
+};
 use axum::Json;
 use axum::body::Bytes;
 use axum::extract::{Extension, OriginalUri, State};
 use axum::http::{HeaderMap, StatusCode, header};
 use axum::response::{IntoResponse, Response};
 use kernel::{Clock, Logger, Metrics};
+use serde::Serialize;
 use serde_json::error::Category;
+use utoipa::ToSchema;
 
 const PROBLEM_JSON: &str = "application/problem+json";
 const IDEMPOTENCY_KEY: &str = "idempotency-key";
 
+#[derive(Serialize, ToSchema)]
+#[serde(rename_all = "camelCase")]
+struct Problem {
+    r#type: String,
+    status: u16,
+    detail: String,
+    instance: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    correlation_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    violations: Option<Vec<ViolationDto>>,
+}
+
+#[utoipa::path(
+    post,
+    path = "/loads",
+    tag = "loads",
+    operation_id = "create_load",
+    request_body = CreateLoadInput,
+    params(("Idempotency-Key" = String, Header)),
+    responses(
+        (status = 201, description = "Load created", body = LoadResource),
+        (
+            status = 400,
+            description = "VALIDATION_FAILED",
+            body = Problem,
+            content_type = "application/problem+json"
+        ),
+        (
+            status = 409,
+            description = "LOAD_CONFLICT",
+            body = Problem,
+            content_type = "application/problem+json"
+        )
+    )
+)]
 pub(crate) async fn create_load<C, L, M>(
     State(cell): State<Loads<C, L, M>>,
     Extension(ActorId(actor)): Extension<ActorId>,
@@ -87,7 +127,7 @@ fn header_violation(code: &str, message: &str) -> CreateLoadError {
 }
 
 fn problem(error: CreateLoadError, instance: &str, correlation_id: Option<&str>) -> Response {
-    let (status, r#type, detail, violations) = match &error {
+    let (status, r#type, detail, violations) = match error {
         CreateLoadError::ValidationFailed { violations } => (
             StatusCode::BAD_REQUEST,
             "VALIDATION_FAILED",
@@ -107,22 +147,20 @@ fn problem(error: CreateLoadError, instance: &str, correlation_id: Option<&str>)
             None,
         ),
     };
-    let mut body = serde_json::json!({
-        "type": r#type,
-        "status": status.as_u16(),
-        "detail": detail,
-        "instance": instance,
-    });
-    if let Some(id) = correlation_id.filter(|id| !id.is_empty()) {
-        body["correlationId"] = serde_json::Value::String(id.to_owned());
-    }
-    if let Some(violations) = violations {
-        body["violations"] = serde_json::to_value(violations).expect("violations serialize");
-    }
+    let body = Problem {
+        r#type: r#type.to_owned(),
+        status: status.as_u16(),
+        detail: detail.to_owned(),
+        instance: instance.to_owned(),
+        correlation_id: correlation_id
+            .filter(|id| !id.is_empty())
+            .map(str::to_owned),
+        violations,
+    };
     (
         status,
         [(header::CONTENT_TYPE, PROBLEM_JSON)],
-        body.to_string(),
+        serde_json::to_string(&body).expect("problem serializes"),
     )
         .into_response()
 }

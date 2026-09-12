@@ -73,7 +73,7 @@ async fn cell_router() -> axum::Router {
         .expect("cell-role DSN unreachable");
     let clock = FakeClock::new(Instant::from_unix_timestamp(1_700_000_000).unwrap());
     let cell = loads::new(loads::LoadsPool::new(connection), clock, Silent, Silent);
-    loads::router(&cell)
+    loads::router(&cell).split_for_parts().0
 }
 
 fn body() -> String {
