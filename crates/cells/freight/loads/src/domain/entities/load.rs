@@ -1,3 +1,4 @@
+use crate::domain::events::LoadEvent;
 use kernel::Instant;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -14,6 +15,7 @@ impl StopKind {
         }
     }
 
+    #[allow(dead_code)]
     fn parse(kind: &str) -> Self {
         match kind {
             "pickup" => Self::Pickup,
@@ -49,9 +51,11 @@ pub(crate) struct Load {
     pub(crate) actor_id: String,
     pub(crate) created_at: Instant,
     pub(crate) stops: Vec<Stop>,
+    events: Vec<LoadEvent>,
 }
 
 impl Load {
+    #[allow(dead_code)]
     pub(crate) fn reconstitute(
         id: String,
         shipper_id: String,
@@ -65,10 +69,10 @@ impl Load {
             actor_id,
             created_at,
             stops,
+            events: Vec::new(),
         }
     }
 
-    #[cfg(test)]
     pub(crate) fn create(
         id: String,
         shipper_id: String,
@@ -76,15 +80,45 @@ impl Load {
         created_at: Instant,
         pickup: Stop,
         delivery: Stop,
-    ) -> Self {
-        Self {
-            id,
+    ) -> Result<Self, LoadError> {
+        if shipper_id.trim().is_empty() {
+            return Err(LoadError::EmptyShipperId);
+        }
+        if actor_id.trim().is_empty() {
+            return Err(LoadError::EmptyActorId);
+        }
+        if pickup.kind != StopKind::Pickup || delivery.kind != StopKind::Delivery {
+            return Err(LoadError::StopKinds);
+        }
+        match &delivery.name {
+            Some(name) if !name.trim().is_empty() => {}
+            _ => return Err(LoadError::MissingConsignee),
+        }
+        if delivery.date < pickup.date {
+            return Err(LoadError::DeliveryBeforePickup);
+        }
+        Ok(Self {
+            id: id.clone(),
             shipper_id,
             actor_id,
             created_at,
             stops: vec![pickup, delivery],
-        }
+            events: vec![LoadEvent::Created { load_id: id }],
+        })
     }
+
+    pub(crate) fn pull_events(&mut self) -> Vec<LoadEvent> {
+        std::mem::take(&mut self.events)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub(crate) enum LoadError {
+    EmptyShipperId,
+    EmptyActorId,
+    StopKinds,
+    MissingConsignee,
+    DeliveryBeforePickup,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -137,6 +171,7 @@ pub(crate) fn to_rows(load: &Load) -> (LoadRow, Vec<StopRow>) {
     (load_row, stop_rows)
 }
 
+#[allow(dead_code)]
 pub(crate) fn from_rows(load: LoadRow, stops: Vec<StopRow>) -> Load {
     let mut stops: Vec<Stop> = stops
         .into_iter()
@@ -225,6 +260,21 @@ impl LoadBuilder {
         self
     }
 
+    pub(crate) fn shipper_id(mut self, shipper_id: impl Into<String>) -> Self {
+        self.shipper_id = shipper_id.into();
+        self
+    }
+
+    pub(crate) fn actor_id(mut self, actor_id: impl Into<String>) -> Self {
+        self.actor_id = actor_id.into();
+        self
+    }
+
+    pub(crate) fn delivery_date(mut self, date: impl Into<String>) -> Self {
+        self.delivery_date = date.into();
+        self
+    }
+
     pub(crate) fn build(self) -> Load {
         let (id, shipper_id, actor_id, created_at, pickup, delivery) = self.into_parts();
         Load::reconstitute(id, shipper_id, actor_id, created_at, vec![pickup, delivery])
@@ -233,6 +283,7 @@ impl LoadBuilder {
     pub(crate) fn build_new(self) -> Load {
         let (id, shipper_id, actor_id, created_at, pickup, delivery) = self.into_parts();
         Load::create(id, shipper_id, actor_id, created_at, pickup, delivery)
+            .expect("builder fixture is valid")
     }
 
     fn into_parts(self) -> (String, String, String, Instant, Stop, Stop) {
@@ -275,7 +326,8 @@ impl LoadBuilder {
 
 #[cfg(test)]
 mod tests {
-    use super::{LoadBuilder, from_rows, to_rows};
+    use super::{Load, LoadBuilder, LoadError, from_rows, to_rows};
+    use crate::domain::events::LoadEvent;
 
     #[test]
     fn mapper_round_trips_a_load_without_optionals() {
@@ -302,5 +354,80 @@ mod tests {
         let restored = from_rows(row, stops);
         assert_eq!(restored.stops[0].kind, super::StopKind::Pickup);
         assert_eq!(restored.stops[1].kind, super::StopKind::Delivery);
+    }
+
+    #[test]
+    fn create_accepts_two_typed_stops() {
+        let load = LoadBuilder::new().build_new();
+        assert_eq!(load.shipper_id, "shipper-1");
+        assert_eq!(load.stops[0].kind, super::StopKind::Pickup);
+        assert_eq!(load.stops[1].kind, super::StopKind::Delivery);
+    }
+
+    #[test]
+    fn create_records_load_created() {
+        let mut load = LoadBuilder::new().build_new();
+        let id = load.id.clone();
+        assert_eq!(load.pull_events(), vec![LoadEvent::Created { load_id: id }]);
+        assert_eq!(load.pull_events(), vec![]);
+    }
+
+    #[test]
+    fn reconstitute_records_no_events() {
+        let mut load = LoadBuilder::new().build();
+        assert_eq!(load.pull_events(), vec![]);
+    }
+
+    #[test]
+    fn create_rejects_empty_shipper_id() {
+        let (id, shipper_id, actor_id, created_at, pickup, delivery) =
+            LoadBuilder::new().shipper_id("  ").into_parts();
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::EmptyShipperId)
+        );
+    }
+
+    #[test]
+    fn create_rejects_empty_actor_id() {
+        let (id, shipper_id, actor_id, created_at, pickup, delivery) =
+            LoadBuilder::new().actor_id("  ").into_parts();
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::EmptyActorId)
+        );
+    }
+
+    #[test]
+    fn create_rejects_stop_kinds() {
+        let (id, shipper_id, actor_id, created_at, mut pickup, mut delivery) =
+            LoadBuilder::new().into_parts();
+        pickup.kind = super::StopKind::Delivery;
+        delivery.kind = super::StopKind::Pickup;
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::StopKinds)
+        );
+    }
+
+    #[test]
+    fn create_rejects_missing_consignee() {
+        let (id, shipper_id, actor_id, created_at, pickup, mut delivery) =
+            LoadBuilder::new().into_parts();
+        delivery.name = None;
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::MissingConsignee)
+        );
+    }
+
+    #[test]
+    fn create_rejects_delivery_before_pickup() {
+        let (id, shipper_id, actor_id, created_at, pickup, delivery) =
+            LoadBuilder::new().delivery_date("2026-09-19").into_parts();
+        assert_eq!(
+            Load::create(id, shipper_id, actor_id, created_at, pickup, delivery),
+            Err(LoadError::DeliveryBeforePickup)
+        );
     }
 }

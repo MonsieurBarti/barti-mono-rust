@@ -6,6 +6,7 @@ use axum::http::{HeaderName, HeaderValue, StatusCode};
 use axum::middleware::{self, Next};
 use axum::response::{IntoResponse, Response};
 use axum::routing::get;
+use loads::{ActorId, CorrelationId};
 use std::time::Instant;
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::Instrument;
@@ -15,18 +16,8 @@ const X_CORRELATION_ID: HeaderName = HeaderName::from_static("x-correlation-id")
 const X_ACTOR_ID: HeaderName = HeaderName::from_static("x-actor-id");
 const PROBLEM_JSON: &str = "application/problem+json";
 const SLOW_MS: u64 = 3000;
-
-#[derive(Clone)]
-struct CorrelationId(String);
-
-// ponytail: read only by the test probe until ticket 08 lands `loads::router`.
-#[derive(Clone)]
-#[cfg_attr(not(test), allow(dead_code))]
-struct ActorId(String);
-
-// `loads` exports no `router` yet (ticket 08). Nest it here when it does.
-pub(crate) fn router() -> Router {
-    layered(Router::new().route("/health", get(health)))
+pub(crate) fn router(loads: Router) -> Router {
+    layered(Router::new().route("/health", get(health)).merge(loads))
 }
 
 fn layered(router: Router) -> Router {

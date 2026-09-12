@@ -1,5 +1,6 @@
 use crate::env::MigrateEnv;
-use sqlx::postgres::PgPoolOptions;
+use sea_orm::{ConnectOptions, Database, DbErr};
+use sea_orm_migration::MigratorTrait;
 
 pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let env = MigrateEnv::from_get(|key| std::env::var(key).ok())?;
@@ -7,13 +8,13 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-pub(crate) async fn run_with(env: &MigrateEnv) -> Result<(), sqlx::Error> {
-    let pool = PgPoolOptions::new()
+pub(crate) async fn run_with(env: &MigrateEnv) -> Result<(), DbErr> {
+    let mut options = ConnectOptions::new(&env.loads_migrator_database_url);
+    options
         .max_connections(1)
-        .connect(&env.loads_migrator_database_url)
-        .await?;
-    sqlx::migrate!("../cells/freight/loads/migrations")
-        .run(&pool)
-        .await?;
-    Ok(())
+        .sqlx_logging(false)
+        .set_schema_search_path(loads::SCHEMA);
+    let connection = Database::connect(options).await?;
+    loads::Migrator::up(&connection, None).await?;
+    connection.close().await
 }

@@ -27,6 +27,7 @@ A booting Cargo workspace you can run locally against Postgres. Kernel rlib, app
 - [Export the kernel crate](issues/05-kernel-exports.md) — chapter 15 export set; crate dep `time` 0.3.55; ISO 4217 list-one 2026-01-01.
 - [Boot app migrate, serve, telemetry, and HTTP](issues/06-app-migrate-serve.md) — `app migrate` / `app serve` split by DSN; `loads._sqlx_migrations` via app `sqlx.toml`; `telemetry.rs` owns tracing plus optional OTLP; health, correlation echo, and 401 problem+json on `127.0.0.1:8080`.
 - [Persist a Load through the write SPI](issues/07-loads-write-spi.md) — `loads.load` / `loads.stop` / `loads.idempotency_key`; write SPI `get_by_id` / `save`; sqlx adapter holds `LoadsPool`; fake plus `contract` feature.
+- [POST a Load with Idempotency-Key](issues/08-create-load-post.md) — `POST /loads`; required `Idempotency-Key`; `loads::new` + `router`; replay on matching fingerprint; `23505` is `LOAD_CONFLICT`; sea-orm adapter, no sqlx.
 
 
 

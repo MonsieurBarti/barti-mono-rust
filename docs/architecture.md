@@ -634,7 +634,7 @@ Framework-free rlib of shared types and ports. It never depends on a cell. It st
 Exports exactly:
 
 - `Money` as locked in chapter 14
-- `Instant`, plus `checked_add_seconds(i64) -> Option<Instant>`
+- `Instant`, plus `checked_add_seconds(i64) -> Option<Instant>` and `to_rfc3339_millis() -> String`
 - `Clock` with `now() -> Instant`
 - `SystemClock`
 - `FakeClock` with `new(Instant)`, `set(Instant)`, `now()`
