@@ -22,6 +22,7 @@ Label: wayfinder:map
 - [Write the layer rules](issues/03-write-the-layer-rules.md) — nine rule files; layer MUST/NEVER plus AGENTS.md Hive law.
 - [Write the TTSR interrupts](issues/04-write-the-ttsr-interrupts.md) — four files; dropped tracing, now(), and runtime query().
 - [Write the ship-ticket skill and command](issues/05-ship-ticket-skill.md) — skill plus `/ship-ticket` prompt; local-attack after the gate; `ttsr-sea-orm` replaces `ttsr-sqlx`.
+- [Write the review-change skill and command](issues/06-review-change-skill.md) — skill plus `/review-change` prompt; Law and Ticket via task; dogfood on boot PR 6.
 
 ## Not yet specified
 
