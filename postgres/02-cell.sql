@@ -4,6 +4,7 @@ DO $$
 BEGIN
     EXECUTE format('GRANT CONNECT ON DATABASE %I TO loads_migrator', current_database());
     EXECUTE format('GRANT CONNECT ON DATABASE %I TO loads', current_database());
+    EXECUTE format('GRANT CONNECT ON DATABASE %I TO pgbot_ro', current_database());
 END
 $$;
 
