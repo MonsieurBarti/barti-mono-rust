@@ -1,6 +1,6 @@
 use kernel::Instant;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
 pub(crate) enum StopKind {
     Pickup,
     Delivery,
@@ -51,12 +51,48 @@ pub(crate) struct Load {
     pub(crate) stops: Vec<Stop>,
 }
 
+impl Load {
+    pub(crate) fn reconstitute(
+        id: String,
+        shipper_id: String,
+        actor_id: String,
+        created_at: Instant,
+        stops: Vec<Stop>,
+    ) -> Self {
+        Self {
+            id,
+            shipper_id,
+            actor_id,
+            created_at,
+            stops,
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn create(
+        id: String,
+        shipper_id: String,
+        actor_id: String,
+        created_at: Instant,
+        pickup: Stop,
+        delivery: Stop,
+    ) -> Self {
+        Self {
+            id,
+            shipper_id,
+            actor_id,
+            created_at,
+            stops: vec![pickup, delivery],
+        }
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub(crate) struct LoadRow {
     pub(crate) id: String,
     pub(crate) shipper_id: String,
     pub(crate) actor_id: String,
-    pub(crate) created_at_millis: i64,
+    pub(crate) created_at: Instant,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -79,7 +115,7 @@ pub(crate) fn to_rows(load: &Load) -> (LoadRow, Vec<StopRow>) {
         id: load.id.clone(),
         shipper_id: load.shipper_id.clone(),
         actor_id: load.actor_id.clone(),
-        created_at_millis: load.created_at.unix_timestamp_millis(),
+        created_at: load.created_at,
     };
     let stop_rows = load
         .stops
@@ -101,35 +137,32 @@ pub(crate) fn to_rows(load: &Load) -> (LoadRow, Vec<StopRow>) {
     (load_row, stop_rows)
 }
 
-pub(crate) fn from_rows(load: LoadRow, mut stops: Vec<StopRow>) -> Load {
-    stops.sort_by_key(|stop| match stop.kind.as_str() {
-        "pickup" => 0,
-        _ => 1,
-    });
-    Load {
-        id: load.id,
-        shipper_id: load.shipper_id,
-        actor_id: load.actor_id,
-        created_at: Instant::from_unix_timestamp_millis(load.created_at_millis)
-            .expect("corrupt created_at"),
-        stops: stops
-            .into_iter()
-            .map(|stop| Stop {
-                id: stop.id,
-                kind: StopKind::parse(&stop.kind),
-                date: stop.date,
-                name: stop.name,
-                address: Address {
-                    line1: stop.line1,
-                    line2: stop.line2,
-                    city: stop.city,
-                    region: stop.region,
-                    postal_code: stop.postal_code,
-                    country: stop.country,
-                },
-            })
-            .collect(),
-    }
+pub(crate) fn from_rows(load: LoadRow, stops: Vec<StopRow>) -> Load {
+    let mut stops: Vec<Stop> = stops
+        .into_iter()
+        .map(|stop| Stop {
+            id: stop.id,
+            kind: StopKind::parse(&stop.kind),
+            date: stop.date,
+            name: stop.name,
+            address: Address {
+                line1: stop.line1,
+                line2: stop.line2,
+                city: stop.city,
+                region: stop.region,
+                postal_code: stop.postal_code,
+                country: stop.country,
+            },
+        })
+        .collect();
+    stops.sort_by_key(|stop| stop.kind);
+    Load::reconstitute(
+        load.id,
+        load.shipper_id,
+        load.actor_id,
+        load.created_at,
+        stops,
+    )
 }
 
 #[cfg(test)]
@@ -155,7 +188,7 @@ impl LoadBuilder {
             id: "01900000-0000-7000-8000-000000000001".to_owned(),
             shipper_id: "shipper-1".to_owned(),
             actor_id: "actor-1".to_owned(),
-            created_at: Instant::from_unix_timestamp_millis(1_700_000_000_123).unwrap(),
+            created_at: Instant::from_unix_timestamp(1_700_000_000).unwrap(),
             pickup_id: "01900000-0000-7000-8000-000000000002".to_owned(),
             pickup_date: "2026-09-20".to_owned(),
             pickup_name: None,
@@ -193,50 +226,50 @@ impl LoadBuilder {
     }
 
     pub(crate) fn build(self) -> Load {
-        self.into_load()
+        let (id, shipper_id, actor_id, created_at, pickup, delivery) = self.into_parts();
+        Load::reconstitute(id, shipper_id, actor_id, created_at, vec![pickup, delivery])
     }
 
     pub(crate) fn build_new(self) -> Load {
-        self.into_load()
+        let (id, shipper_id, actor_id, created_at, pickup, delivery) = self.into_parts();
+        Load::create(id, shipper_id, actor_id, created_at, pickup, delivery)
     }
 
-    fn into_load(self) -> Load {
-        Load {
-            id: self.id,
-            shipper_id: self.shipper_id,
-            actor_id: self.actor_id,
-            created_at: self.created_at,
-            stops: vec![
-                Stop {
-                    id: self.pickup_id,
-                    kind: StopKind::Pickup,
-                    date: self.pickup_date,
-                    name: self.pickup_name,
-                    address: Address {
-                        line1: "1 Dock".to_owned(),
-                        line2: self.pickup_line2,
-                        city: "Dallas".to_owned(),
-                        region: "TX".to_owned(),
-                        postal_code: "75201".to_owned(),
-                        country: "US".to_owned(),
-                    },
+    fn into_parts(self) -> (String, String, String, Instant, Stop, Stop) {
+        (
+            self.id,
+            self.shipper_id,
+            self.actor_id,
+            self.created_at,
+            Stop {
+                id: self.pickup_id,
+                kind: StopKind::Pickup,
+                date: self.pickup_date,
+                name: self.pickup_name,
+                address: Address {
+                    line1: "1 Dock".to_owned(),
+                    line2: self.pickup_line2,
+                    city: "Dallas".to_owned(),
+                    region: "TX".to_owned(),
+                    postal_code: "75201".to_owned(),
+                    country: "US".to_owned(),
                 },
-                Stop {
-                    id: self.delivery_id,
-                    kind: StopKind::Delivery,
-                    date: self.delivery_date,
-                    name: Some(self.delivery_name),
-                    address: Address {
-                        line1: "9 Warehouse".to_owned(),
-                        line2: self.delivery_line2,
-                        city: "Austin".to_owned(),
-                        region: "TX".to_owned(),
-                        postal_code: "78701".to_owned(),
-                        country: "US".to_owned(),
-                    },
+            },
+            Stop {
+                id: self.delivery_id,
+                kind: StopKind::Delivery,
+                date: self.delivery_date,
+                name: Some(self.delivery_name),
+                address: Address {
+                    line1: "9 Warehouse".to_owned(),
+                    line2: self.delivery_line2,
+                    city: "Austin".to_owned(),
+                    region: "TX".to_owned(),
+                    postal_code: "78701".to_owned(),
+                    country: "US".to_owned(),
                 },
-            ],
-        }
+            },
+        )
     }
 }
 

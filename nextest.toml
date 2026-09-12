@@ -1,2 +1,0 @@
-[profile.default]
-filter = "not test(integration::)"

@@ -22,9 +22,9 @@ Do not add HTTP. Do not add Quote HTTP. Do not `CREATE ROLE` or `GRANT` in cell 
 
 `loads` owns a state-table write model in its schema. Migration `20260912120000_load_write_model` creates `loads.load`, `loads.stop`, and `loads.idempotency_key`. Ids are `UUID`, `created_at` is `TIMESTAMPTZ`, stop `date` is `DATE`. Unique `(actor_id, key)` on `idempotency_key`. Unique `(load_id, kind)` on `stop`. No `CREATE ROLE` or `GRANT`. No money column.
 
-Write SPI is `get_by_id` / `save`. `save` takes `Option<IdempotencyRecord>` and writes that row on the same transaction when `Some`. Replay is not implemented. `SqlxLoadStore` holds `LoadsPool`. Cell `new` is still absent, so nothing takes `PgPool`. `query!` compiles against `LOADS_DATABASE_URL`. Integration migrates with `LOADS_MIGRATOR_DATABASE_URL` and never boots `app`.
+Write SPI is `get_by_id` / `save`. `save` takes `Option<IdempotencyRecord>` and writes that row on the same transaction when `Some`. Replay is not implemented. `SqlxLoadStore` holds `LoadsPool`. `LoadsPool` is crate-private; `lib.rs` does not re-export it. Cell `new` is still absent, so nothing takes `PgPool`. `query!` compiles against `LOADS_DATABASE_URL`. Integration migrates with `LOADS_MIGRATOR_DATABASE_URL` and never boots `app`.
 
-Kernel `Instant` gained `from_unix_timestamp_millis` / `unix_timestamp_millis` so the adapter round-trips millisecond `created_at` without a `time` dep in `loads`.
+Kernel `Instant` stays second-precision (`from_unix_timestamp` / `unix_timestamp`). The sqlx adapter converts TIMESTAMPTZ epoch millis at the infrastructure boundary. `LoadBuilder::build` reconstitutes; `build_new` creates.
 
 Handwritten `FakeLoadStore` sits next to the SPI. `load_store_contract` is `pub` under `cfg(any(test, feature = "contract"))`. Both adapters invoke it. Mapper unit tests round-trip optional pickup `name` / `line2`.
 

@@ -1,4 +1,4 @@
 mod load_store;
 mod pool;
 
-pub use pool::LoadsPool;
+pub(crate) use pool::LoadsPool;

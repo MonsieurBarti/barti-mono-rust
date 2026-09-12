@@ -1,9 +1,9 @@
 use sqlx::PgPool;
 
-pub struct LoadsPool(PgPool);
+pub(crate) struct LoadsPool(PgPool);
 
 impl LoadsPool {
-    pub fn new(pool: PgPool) -> Self {
+    pub(crate) fn new(pool: PgPool) -> Self {
         Self(pool)
     }
 

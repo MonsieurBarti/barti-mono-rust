@@ -1,6 +1,7 @@
 use crate::domain::entities::load::{Load, LoadRow, StopRow, from_rows, to_rows};
 use crate::domain::spi::load_store::{IdempotencyRecord, LoadStore, LoadStoreError};
 use crate::infrastructure::LoadsPool;
+use kernel::Instant;
 use uuid::Uuid;
 
 pub(crate) struct SqlxLoadStore {
@@ -20,37 +21,10 @@ impl LoadStore for SqlxLoadStore {
     ) -> impl Future<Output = Result<Option<Load>, LoadStoreError>> + Send {
         let pool = self.pool.inner().clone();
         let id = id.to_owned();
-        async move { get_by_id(&pool, &id).await }
-    }
-
-    fn save(
-        &self,
-        load: &Load,
-        idempotency: Option<IdempotencyRecord>,
-    ) -> impl Future<Output = Result<(), LoadStoreError>> + Send {
-        let pool = self.pool.inner().clone();
-        let load = load.clone();
-        async move { save(&pool, &load, idempotency).await }
-    }
-}
-
-fn map_err(err: sqlx::Error) -> LoadStoreError {
-    if let sqlx::Error::Database(db) = &err
-        && db.code().as_deref() == Some("23505")
-    {
-        return LoadStoreError::Conflict;
-    }
-    LoadStoreError::Unexpected
-}
-
-fn parse_uuid(id: &str) -> Result<Uuid, LoadStoreError> {
-    Uuid::parse_str(id).map_err(|_| LoadStoreError::Unexpected)
-}
-
-async fn get_by_id(pool: &sqlx::PgPool, id: &str) -> Result<Option<Load>, LoadStoreError> {
-    let id = parse_uuid(id)?;
-    let load = sqlx::query!(
-        r#"
+        async move {
+            let id = parse_uuid(&id)?;
+            let load = sqlx::query!(
+                r#"
         SELECT
             id::text AS "id!",
             shipper_id,
@@ -59,16 +33,16 @@ async fn get_by_id(pool: &sqlx::PgPool, id: &str) -> Result<Option<Load>, LoadSt
         FROM loads.load
         WHERE id = $1
         "#,
-        id
-    )
-    .fetch_optional(pool)
-    .await
-    .map_err(map_err)?;
-    let Some(load) = load else {
-        return Ok(None);
-    };
-    let stops = sqlx::query!(
-        r#"
+                id
+            )
+            .fetch_optional(&pool)
+            .await
+            .map_err(map_err)?;
+            let Some(load) = load else {
+                return Ok(None);
+            };
+            let stops = sqlx::query!(
+                r#"
         SELECT
             id::text AS "id!",
             load_id::text AS "load_id!",
@@ -84,46 +58,51 @@ async fn get_by_id(pool: &sqlx::PgPool, id: &str) -> Result<Option<Load>, LoadSt
         FROM loads.stop
         WHERE load_id = $1
         "#,
-        id
-    )
-    .fetch_all(pool)
-    .await
-    .map_err(map_err)?;
-    Ok(Some(from_rows(
-        LoadRow {
-            id: load.id,
-            shipper_id: load.shipper_id,
-            actor_id: load.actor_id,
-            created_at_millis: load.created_at_millis,
-        },
-        stops
-            .into_iter()
-            .map(|stop| StopRow {
-                id: stop.id,
-                load_id: stop.load_id,
-                kind: stop.kind,
-                date: stop.date,
-                name: stop.name,
-                line1: stop.line1,
-                line2: stop.line2,
-                city: stop.city,
-                region: stop.region,
-                postal_code: stop.postal_code,
-                country: stop.country,
-            })
-            .collect(),
-    )))
-}
+                id
+            )
+            .fetch_all(&pool)
+            .await
+            .map_err(map_err)?;
+            Ok(Some(from_rows(
+                LoadRow {
+                    id: load.id,
+                    shipper_id: load.shipper_id,
+                    actor_id: load.actor_id,
+                    created_at: Instant::from_unix_timestamp(load.created_at_millis / 1000)
+                        .expect("corrupt created_at"),
+                },
+                stops
+                    .into_iter()
+                    .map(|stop| StopRow {
+                        id: stop.id,
+                        load_id: stop.load_id,
+                        kind: stop.kind,
+                        date: stop.date,
+                        name: stop.name,
+                        line1: stop.line1,
+                        line2: stop.line2,
+                        city: stop.city,
+                        region: stop.region,
+                        postal_code: stop.postal_code,
+                        country: stop.country,
+                    })
+                    .collect(),
+            )))
+        }
+    }
 
-async fn save(
-    pool: &sqlx::PgPool,
-    load: &Load,
-    idempotency: Option<IdempotencyRecord>,
-) -> Result<(), LoadStoreError> {
-    let (load_row, stop_rows) = to_rows(load);
-    let mut tx = pool.begin().await.map_err(map_err)?;
-    sqlx::query!(
-        r#"
+    fn save(
+        &self,
+        load: &Load,
+        idempotency: Option<IdempotencyRecord>,
+    ) -> impl Future<Output = Result<(), LoadStoreError>> + Send {
+        let pool = self.pool.inner().clone();
+        let load = load.clone();
+        async move {
+            let (load_row, stop_rows) = to_rows(&load);
+            let mut tx = pool.begin().await.map_err(map_err)?;
+            sqlx::query!(
+                r#"
         INSERT INTO loads.load (id, shipper_id, actor_id, created_at)
         VALUES (
             $1,
@@ -132,17 +111,17 @@ async fn save(
             TIMESTAMPTZ 'epoch' + $4::bigint * INTERVAL '1 millisecond'
         )
         "#,
-        parse_uuid(&load_row.id)?,
-        load_row.shipper_id,
-        load_row.actor_id,
-        load_row.created_at_millis
-    )
-    .execute(&mut *tx)
-    .await
-    .map_err(map_err)?;
-    for stop in stop_rows {
-        sqlx::query!(
-            r#"
+                parse_uuid(&load_row.id)?,
+                load_row.shipper_id,
+                load_row.actor_id,
+                load_row.created_at.unix_timestamp() * 1000
+            )
+            .execute(&mut *tx)
+            .await
+            .map_err(map_err)?;
+            for stop in stop_rows {
+                sqlx::query!(
+                    r#"
             INSERT INTO loads.stop (
                 id, load_id, kind, date, name, line1, line2, city, region, postal_code, country
             )
@@ -160,39 +139,54 @@ async fn save(
                 $11
             )
             "#,
-            parse_uuid(&stop.id)?,
-            parse_uuid(&stop.load_id)?,
-            stop.kind,
-            stop.date,
-            stop.name,
-            stop.line1,
-            stop.line2,
-            stop.city,
-            stop.region,
-            stop.postal_code,
-            stop.country
-        )
-        .execute(&mut *tx)
-        .await
-        .map_err(map_err)?;
-    }
-    if let Some(record) = idempotency {
-        sqlx::query!(
-            r#"
+                    parse_uuid(&stop.id)?,
+                    parse_uuid(&stop.load_id)?,
+                    stop.kind,
+                    stop.date,
+                    stop.name,
+                    stop.line1,
+                    stop.line2,
+                    stop.city,
+                    stop.region,
+                    stop.postal_code,
+                    stop.country
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(map_err)?;
+            }
+            if let Some(record) = idempotency {
+                sqlx::query!(
+                    r#"
             INSERT INTO loads.idempotency_key (actor_id, key, fingerprint, outcome)
             VALUES ($1, $2, $3, $4)
             "#,
-            record.actor_id,
-            record.key,
-            record.fingerprint,
-            record.outcome
-        )
-        .execute(&mut *tx)
-        .await
-        .map_err(map_err)?;
+                    record.actor_id,
+                    record.key,
+                    record.fingerprint,
+                    record.outcome
+                )
+                .execute(&mut *tx)
+                .await
+                .map_err(map_err)?;
+            }
+            tx.commit().await.map_err(map_err)?;
+            Ok(())
+        }
     }
-    tx.commit().await.map_err(map_err)?;
-    Ok(())
+}
+
+fn map_err(err: sqlx::Error) -> LoadStoreError {
+    if let sqlx::Error::Database(db) = &err
+        && db.code().as_deref() == Some("23505")
+    {
+        return LoadStoreError::Conflict;
+    }
+    LoadStoreError::Unexpected
+}
+
+fn parse_uuid(id: &str) -> Result<Uuid, LoadStoreError> {
+    Uuid::parse_str(id).map_err(|_| LoadStoreError::Unexpected)
 }
 
 #[cfg(test)]
