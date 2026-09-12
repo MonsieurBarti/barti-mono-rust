@@ -31,6 +31,7 @@ The repo matches [the locked spec](../hive-docs/spec.md). Handbook files, glossa
 - [Merge OpenAPI in app and write the document](issues/07-merge-and-write-openapi.md) — `app` merges from `AppApi`; extra bin writes `docs/openapi/openapi.json`.
 - [Inject 401 and 500 after merge](issues/08-inject-401-500.md) — walk merged `OpenApi`; `or_insert` 401 and 500 with `$ref` `Problem`.
 - [Prove OpenAPI coverage and Problem identity](issues/09-openapi-coverage-tests.md) — two nextest tests; cell tags merge; Problem JSON identical before merge.
+- [Add scripts/check-docs](issues/10-check-docs-script.md) — path equality over cell crates; closed `docs/handbook/` and `docs/openapi/` trees; no CI step.
 
 
 
