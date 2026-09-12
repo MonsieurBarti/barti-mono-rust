@@ -1,0 +1,54 @@
+#!/usr/bin/env bash
+# Path equality between cell crates and the documentation trees.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT"
+shopt -s nullglob
+
+failed=0
+
+fail() {
+  echo "$1" >&2
+  failed=1
+}
+
+require() {
+  [[ -f "$1" ]] || fail "missing $1"
+}
+
+in_list() {
+  local want="$1" item
+  shift
+  for item in "$@"; do
+    [[ "$item" == "$want" ]] && return 0
+  done
+  return 1
+}
+
+require docs/handbook/README.md
+require docs/handbook/kernel.md
+require docs/handbook/app.md
+require CONTEXT-MAP.md
+
+allowed=(docs/handbook/README.md docs/handbook/kernel.md docs/handbook/app.md)
+for manifest in crates/cells/*/*/Cargo.toml; do
+  crate="$(dirname "$manifest")"
+  cell="$(basename "$crate")"
+  allowed+=("docs/handbook/cells/$cell.md")
+  require "docs/handbook/cells/$cell.md"
+  require "$crate/CONTEXT.md"
+  if [[ -f CONTEXT-MAP.md ]] && ! grep -qF "$crate/CONTEXT.md" CONTEXT-MAP.md; then
+    fail "CONTEXT-MAP.md misses $crate/CONTEXT.md"
+  fi
+done
+
+while IFS= read -r file; do
+  in_list "$file" "${allowed[@]}" || fail "unexpected $file"
+done < <(find docs/handbook -type f 2>/dev/null | sort)
+
+while IFS= read -r file; do
+  [[ "$file" == docs/openapi/openapi.json ]] || fail "unexpected $file"
+done < <(find docs/openapi -type f 2>/dev/null | sort)
+
+exit "$failed"
