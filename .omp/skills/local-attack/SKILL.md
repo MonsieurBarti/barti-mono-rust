@@ -1,0 +1,72 @@
+---
+name: local-attack
+description: Attack a hive branch against live local HTTP. Use when ship-ticket step 5 runs, or when a change needs its endpoints tried on compose Postgres.
+---
+
+# Attack a change
+
+Diff is `origin/main...HEAD`. Attack hits live `app serve`. The lock is a hive-tests cargo test. Green when every planned case passed and every new lock bit.
+
+If this checkout is a worktree, read `skill://omp-worktree-absolute-paths` and prefix every path and command.
+
+This run owns local cell tables in `hive`. Attack creates preconditions over HTTP. The cargo test is the memory. CI never binds the serve port.
+
+Never SQL seed. Never point serve at `hive_test`. Never bind a server from a cargo test. Never kill a process this run did not start. Never skip a failure as pre-existing without a failing cargo test on `origin/main`.
+
+## 1. Surface
+
+`git fetch origin main` then `git diff origin/main...HEAD --name-only`.
+
+Skip when every path is under `docs/`, `.omp/`, `.scratch/`, or is `CONTEXT.md`. Chat `local-attack: green (no surface)`.
+
+Otherwise the surface is every public route of every cell the diff touches. Read routes from that cell's `presentation/http`. A change in `crates/app`, `crates/kernel`, `postgres/`, `compose.yaml`, or `.env.example` includes every cell.
+
+Done when the skip line is in chat, or the route list exists.
+
+## 2. Plan
+
+Write `.scratch/attack-plan.md`. Do not commit it.
+
+For each route: happy path, documented failures, missing actor header, other actor's resource, replayed idempotency key, different body same key, and multi-row state the diff can break. Preconditions are HTTP calls in this file. Human REST headers live in `crates/app/src/http.rs`. POST and PATCH follow the cell handler's idempotency rules.
+
+Done when the file lists every route and every case.
+
+## 3. Boot
+
+```
+docker compose up -d --wait
+```
+
+Export product `LOADS_MIGRATOR_DATABASE_URL`, `LOADS_DATABASE_URL`, and `LOADS_POOL_MAX` from the `hive` lines in `.env.example`. App does not load `.env`. Then `cargo run -- migrate`.
+
+TRUNCATE each touched cell as the migrator on database `hive`. SQL lives in that cell's `test_db.rs` (or its migrations).
+
+Start `cargo run -- serve` as a long-running process. Ready when `GET {BIND}/health` is 200. `BIND` is `crates/app/src/serve.rs`. If the port is taken, stop. Do not steal it.
+
+Done when `/health` is 200.
+
+## 4. Attack
+
+Run every case in the plan with HTTP against `BIND`. Record status on each line of the plan. Exhaust the plan.
+
+Done when every case has a recorded status.
+
+## 5. Lock
+
+A finding is in-scope until a cargo test on `origin/main` shows the same failure.
+
+Fix in-scope bugs. Add a lock in the lane that observes the bug, per `rule://hive-tests`. HTTP contract goes in cell `tests/` with tower oneshot. Never boot `app` from the test.
+
+Read `skill://prove-regression-guard-bites` and run it on each new lock.
+
+Re-run the whole plan after fixes.
+
+Done when every planned case passed and every new lock bit.
+
+## 6. Tear down
+
+Stop the serve this run started. TRUNCATE again. Leave compose up. Delete `.scratch/attack-plan.md`.
+
+Chat `local-attack: green` or `local-attack: red` with the remaining findings.
+
+Done when `BIND` is down, cell tables are empty, and chat has the line.
