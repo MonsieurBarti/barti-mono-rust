@@ -10,28 +10,30 @@ Glossary lives in [`CONTEXT.md`](../CONTEXT.md). This file uses those terms.
 
 Pin grain is majors. [ADR 0001](adr/0001-stack-pins.md) owns minors and patches. Bump a pin by changing that ADR.
 
-| Pin | Major |
-| --- | --- |
-| rustc | 1.98 |
-| edition | 2024 |
-| `axum` | 0.8 |
-| `tokio` | 1 |
-| `hyper` | 1 |
-| `tower` | 0.5 |
-| `tower-http` | 0.6, not 0.7 |
-| `sqlx` | 0.9 |
-| `sqlx-cli` | 0.9 |
-| `serde` / `serde_json` | 1 |
-| `garde` | 0.23 |
-| `time` | 0.3 |
-| `uuid` | 1 |
-| `tracing` | 0.1 |
-| OpenTelemetry / OTLP | 0.32 |
-| `cargo-deny` | 0.20 |
-| `cargo-nextest` | 0.9 |
-| `cargo-llvm-cov` | 0.9 |
+| Pin                    | Major        |
+| ---------------------- | ------------ |
+| rustc                  | 1.98         |
+| edition                | 2024         |
+| `axum`                 | 0.8          |
+| `tokio`                | 1            |
+| `hyper`                | 1            |
+| `tower`                | 0.5          |
+| `tower-http`           | 0.6, not 0.7 |
+| `sea-orm`              | 2            |
+| `sea-orm-migration`    | 2            |
+| `sea-orm-cli`          | 2            |
+| `sqlx`                 | 0.9, driver  |
+| `serde` / `serde_json` | 1            |
+| `garde`                | 0.23         |
+| `time`                 | 0.3          |
+| `uuid`                 | 1            |
+| `tracing`              | 0.1          |
+| OpenTelemetry / OTLP   | 0.32         |
+| `cargo-deny`           | 0.20         |
+| `cargo-nextest`        | 0.9          |
+| `cargo-llvm-cov`       | 0.9          |
 
-Kernel depends on `time` only. Cells import none of `tracing`, OpenTelemetry, or a task-local crate.
+Kernel depends on `time` only. It stays sqlx-free and sea-orm-free. Cells import none of `tracing`, OpenTelemetry, or a task-local crate.
 
 Not pinned: a JWT crate, a CQRS bus crate, a queue crate, a cron crate, an OpenAPI crate, a GraphQL crate, an MCP crate, testcontainers, mockall as law, `tonic`.
 
@@ -54,7 +56,7 @@ GraphQL, MCP, and legacy promotion are not chapters.
 
 ## 1. Language
 
-Grill: [What ubiquitous language does the Rust hive keep from naboo, and what Nest/Mongo terms die?](../.scratch/rust-hive/issues/06-rust-hive-glossary.md) · ADR: [Language](adr/0002-language.md)
+Grill: [What ubiquitous language does the Rust hive keep?](../.scratch/rust-hive/issues/06-rust-hive-glossary.md) · ADR: [Language](adr/0002-language.md)
 
 ### Context
 
@@ -64,7 +66,7 @@ Everyday word is **cell**. Four in-cell layers stay. Packaging word is **crate**
 
 Presentation and InProc call an API port. The application use-case implements that API port. Adapters never implement an API port.
 
-sqlx, vendor, and InProc adapters implement an SPI.
+sea-orm, vendor, and InProc adapters implement an SPI.
 
 Open Host is the set of API ports this cell exports. An integration event is not Open Host.
 
@@ -76,15 +78,15 @@ The cell-edge envelope is `{ type, context }`. It is not a command wrapper.
 
 Terms and Avoid lists live in [`CONTEXT.md`](../CONTEXT.md). Replacements this hive uses:
 
-| Died | Lives |
-| --- | --- |
-| Nest module | crate |
-| AppModule | composition root (`app` binary) |
-| mongoose adapter | sqlx adapter |
-| Zod | codec |
-| sheriff / dependency-cruiser | import wall |
-| collection | table |
-| promote, slice, neighbour, legacy bridge, hex platform kit | (gone) |
+| Died                                                       | Lives                           |
+| ---------------------------------------------------------- | ------------------------------- |
+| Nest module                                                | crate                           |
+| AppModule                                                  | composition root (`app` binary) |
+| mongoose adapter                                           | sea-orm adapter                 |
+| Zod                                                        | codec                           |
+| sheriff / dependency-cruiser                               | import wall                     |
+| collection                                                 | table                           |
+| promote, slice, neighbour, legacy bridge, hex platform kit | (gone)                          |
 
 Fatten stays.
 
@@ -121,16 +123,16 @@ crates/
       telemetry.rs
 ```
 
-| Kind folder | Group by |
-| --- | --- |
-| `domain/entities`, `events`, `errors` | Entity |
-| `domain/api` | Use-case or integration event |
-| `domain/spi` | Consumer need |
-| `application/commands`, `queries` | Use-case |
-| `application/event-handlers` | Need |
-| `presentation/http` | Use-case |
-| `presentation/ticks` | Use-case |
-| `infrastructure/` | The SPI it implements |
+| Kind folder                           | Group by                      |
+| ------------------------------------- | ----------------------------- |
+| `domain/entities`, `events`, `errors` | Entity                        |
+| `domain/api`                          | Use-case or integration event |
+| `domain/spi`                          | Consumer need                 |
+| `application/commands`, `queries`     | Use-case                      |
+| `application/event-handlers`          | Need                          |
+| `presentation/http`                   | Use-case                      |
+| `presentation/ticks`                  | Use-case                      |
+| `infrastructure/`                     | The SPI it implements         |
 
 SPI folder is this cell's need, never the provider's cell name. InProc lives in `app/inproc/<consumer>/<provider>.rs`.
 
@@ -281,13 +283,13 @@ Each use-case is one application struct that implements that API-port trait. Fil
 
 A command may return an id or outcome as Published Language. Errors stay the per-port envelope. A query never mutates. It injects read SPIs only. No `save`. No outbox insert. No domain-event publish.
 
-Write SPI is `get_by_id` / `save` per aggregate. Replay lives in the adapter. The use-case never imports sqlx. Multi-entity work lives in the use-case, not `domain/services/`. Two `save` calls are two transactions. Same-request atomicity means one aggregate. No unit-of-work SPI.
+Write SPI is `get_by_id` / `save` per aggregate. Replay lives in the adapter. The use-case never imports `sea_orm`. Multi-entity work lives in the use-case, not `domain/services/`. Two `save` calls are two transactions. Same-request atomicity means one aggregate. No unit-of-work SPI.
 
 A query injects one read SPI per need and returns a plain read model. It never loads the write-side entity. Default reads may hit the write table through that read SPI.
 
 The entity records domain events during behavior. After `save` returns, the use-case publishes `entity.pull_events()` through a cell write-side events SPI. Infrastructure awaits matching handlers by type, after commit. Handlers live in `application/event-handlers/<need>/` and stay in-cell. They are after-commit reactions that may lag, including fan-out to another use-case in this cell. They are not how a query's required read model is written. Extra in-cell read collections stay on chapter 7. Not `tokio::sync::broadcast`. Not a bus crate.
 
-Command integration fakes the events SPI and asserts what was published. A handler is its own application integration test: real sqlx, fake leaving SPIs.
+Command integration fakes the events SPI and asserts what was published. A handler is its own application integration test: real sea-orm adapter, fake leaving SPIs.
 
 Command pipeline is a per-cell choice, not architecture law.
 
@@ -299,7 +301,7 @@ Driving adapters call the API port. Extra read tables wait on chapter 7.
 
 ## 6. Persistence
 
-Grill: [How is Postgres isolation enforced per cell?](../.scratch/rust-hive/issues/09-postgres-cell-isolation.md) · ADR: [Persistence](adr/0007-persistence.md)
+Grill: [How is Postgres isolation enforced per cell?](../.scratch/rust-hive/issues/09-postgres-cell-isolation.md), [Should the persistence adapter be an ORM?](../.scratch/rust-hive/issues/25-orm-adapter.md) · ADR: [Persistence](adr/0007-persistence.md)
 
 ### Context
 
@@ -309,15 +311,19 @@ One database. Exclusive tables are cell identity (chapter 2). Compile-time wall 
 
 Schema per cell. Two LOGIN roles per cell: the migrator role owns the schema and runs DDL; the cell role is DML only on that schema.
 
-Ops provisions the database, both LOGINs, `CREATE SCHEMA … AUTHORIZATION` migrator, GRANTs, and default privileges. `GRANT … ON ALL TABLES IN SCHEMA` is legal because the schema is the exclusive unit. `REVOKE ALL ON SCHEMA public FROM PUBLIC`. No `CREATE` on the schema for the cell role. No `SET ROLE`. Cell `migrations/` only change tables and indexes in that schema. A new table is a cell migration. A new schema is a role change in the same change. Cell migrations never `CREATE ROLE` or `GRANT`.
+Ops provisions the database, both LOGINs, `CREATE SCHEMA … AUTHORIZATION` migrator, GRANTs, and default privileges. `GRANT … ON ALL TABLES IN SCHEMA` is legal because the schema is the exclusive unit. `REVOKE ALL ON SCHEMA public FROM PUBLIC`. No `CREATE` on the schema for the cell role. No `SET ROLE`. Cell `migrations/` only change tables and indexes in that schema. A new table is a cell migration. A new schema is a role change in the same change. Cell migrations never `CREATE ROLE` or `GRANT`. Migrations are modules in the cell crate. No extra `migration` crate. Default `public` is a review reject.
 
-`app` has a migrate entry and a serve entry. Migrate env holds migrator DSNs and runs each cell's `sqlx::migrate!`. Serve env holds only cell-role DSNs and never migrates.
+`app` has a migrate entry and a serve entry. Migrate env holds migrator DSNs and runs each cell's `sea-orm-migration` Migrator with the schema passed explicitly. Serve env holds only cell-role DSNs and never migrates.
 
-Serve: `app` opens a named pool from the cell-role DSN, wraps it in a cell-private newtype, and passes it only into that cell's sqlx adapter. Cell `new` never takes `PgPool`. Unnamed, shared, or default pool is a review reject. Pool size is env. Domain SPI stays pool-free. sqlx types stay in `infrastructure/`.
+Serve: `app` opens a named `DatabaseConnection` from the cell-role DSN, wraps it in a cell-private newtype, and passes it only into that cell's sea-orm adapter. Cell `new` never takes `DatabaseConnection`. Unnamed, shared, or default connection is a review reject. Pool size is env. Domain SPI stays pool-free. `sea_orm` types stay in `infrastructure/`. `DatabaseConnection` owns a `sqlx::Pool`. Cells depend on `sea-orm`, not sqlx.
 
-A transaction is `pool.begin()` on that cell's pool. Two pools cannot share a `BEGIN`. Prepared transactions and 2PC stay out. Same-request write atomicity across cells is a merge signal. InProc is a second transaction on the other cell's pool.
+A transaction is `begin()` on that cell's connection. Two connections cannot share a `BEGIN`. Prepared transactions and 2PC stay out. Same-request write atomicity across cells is a merge signal. InProc is a second transaction on the other cell's connection.
 
-Compile-time wall: crate privacy plus `query!` / `query_as!` compiled against the cell-role DSN, never a superuser URL. Schema-qualify every table. `search_path` is a belt. A planted foreign schema fails compile without `USAGE`. Runtime `query()` is a review reject except where the macro cannot express the SQL. Runtime leftover is SQLSTATE `42501`, an operational bug, not a cell-edge envelope. Proof that GRANT bites is chapter 10.
+Compile-time wall: crate privacy only. No `query!`. Every entity sets `schema_name`. `search_path` is a belt on the role. `set_schema_search_path` is not the wall. A planted foreign schema is a review reject. Runtime leftover is SQLSTATE `42501`, an operational bug, not a cell-edge envelope. Proof that GRANT bites is chapter 10.
+
+Handwritten `Model` / `ActiveModel` live in `infrastructure/`, `pub(crate)`. The adapter maps them to domain types. Empty `ActiveModelBehavior`. Domain never imports `sea_orm`. No `sea-orm-cli generate-entity`.
+
+The adapter maps `23505` through `DbErr` to conflict.
 
 The domain folder is not a privilege boundary. Kernel has no exclusive datastore. Diesel `table!` stays rejected.
 
@@ -345,7 +351,7 @@ Snapshots are optional in a second table in that schema. Replay without a snapsh
 
 EventStoreDB and a second database stay out.
 
-Application uses the same write SPI: `get_by_id` / `save`. Replay and append live in the sqlx adapter. Expected version sits on the aggregate the adapter loaded. One `pool.begin()` on that cell's pool writes the stream or state row, the outbox rows, and extra in-cell read tables.
+Application uses the same write SPI: `get_by_id` / `save`. Replay and append live in the sea-orm adapter. Expected version sits on the aggregate the adapter loaded. One `begin()` on that cell's connection writes the stream or state row, the outbox rows, and extra in-cell read tables.
 
 Queries never replay. They use a read SPI. The stream answers `get_by_id` only. Extra in-cell read tables are allowed when this cell's queries cannot use the write row. Same transaction as `save`. After-commit event handlers do not write a query's required read model.
 
@@ -382,14 +388,14 @@ Public paths are resources. Presentation maps verb plus path onto a use-case API
 Hide `context`. Cell presentation owns `type` → public string. `app` merges catalogs at boot. Unknown `type` is a generic string plus a server warn. Sensitive types stay generic. One composition-root suffix map, no per-cell override. Domain error carries no status.
 
 | Envelope suffix or type | HTTP |
-| --- | --- |
-| `*_NOT_FOUND` | 404 |
-| `*_CONFLICT` | 409 |
-| `UNAUTHENTICATED` | 401 |
-| `FORBIDDEN` | 403 |
-| `RATE_LIMITED` | 429 |
-| `VALIDATION_FAILED` | 400 |
-| else | 500 |
+| ----------------------- | ---- |
+| `*_NOT_FOUND`           | 404  |
+| `*_CONFLICT`            | 409  |
+| `UNAUTHENTICATED`       | 401  |
+| `FORBIDDEN`             | 403  |
+| `RATE_LIMITED`          | 429  |
+| `VALIDATION_FAILED`     | 400  |
+| else                    | 500  |
 
 Public error document is RFC 9457 `application/problem+json`: `type` (envelope type string, not a URI), `status`, catalog `detail`, `instance` (request path), `correlationId` when present. No `title`. No `context`. `VALIDATION_FAILED` adds `violations: { path, code, message }[]` with no submitted values.
 
@@ -407,7 +413,7 @@ The API port takes `idempotency_key: String` like `ActorId`. REST copies the hea
 
 Store is table `idempotency_key` in that cell’s schema. Only cells with human POST/PATCH. Unique `(actor_id, key)`. Not kernel. Not `app`. Other columns are adapter-private.
 
-Decode is the first act. Idempotency SPI `get` is a committed read. Hit plus matching fingerprint: return the stored `Result`. Hit plus mismatch: `VALIDATION_FAILED`. Miss: run the command. Write SPI `save` used by that command takes `Option` of the record. Ticks and fan-out pass `None`. Cells without the table keep two-argument `save`. The sqlx adapter writes the row on the same `Transaction` as the aggregate, outbox, and extra in-cell tables. No unit-of-work SPI.
+Decode is the first act. Idempotency SPI `get` is a committed read. Hit plus matching fingerprint: return the stored `Result`. Hit plus mismatch: `VALIDATION_FAILED`. Miss: run the command. Write SPI `save` used by that command takes `Option` of the record. Ticks and fan-out pass `None`. Cells without the table keep two-argument `save`. The sea-orm adapter writes the row on the same transaction as the aggregate, outbox, and extra in-cell tables. No unit-of-work SPI.
 
 Fingerprint is a deterministic checksum of port identity plus decoded input PL. Hash algorithm is not hive law.
 
@@ -419,7 +425,7 @@ Webhook POST does not use this header. The driving adapter extracts the vendor e
 
 Command pipeline stays a per-cell choice. This header is not a pipeline. Each HTTP attempt still emits one wide event, including a replay.
 
-Missing header is cell e2e on `router`. Replay and `23505` are application integration, real sqlx, fake leaving SPIs.
+Missing header is cell e2e on `router`. Replay and `23505` are application integration, real sea-orm adapter, fake leaving SPIs.
 
 ### Consequences
 
@@ -439,7 +445,7 @@ The cell is garde-free and serde-free inside the inner hexagon.
 
 `domain/api/<use-case>/` owns input PL (`Deserialize` + garde + `deny_unknown_fields`), output PL (`Serialize`, no deny), `decode`, and the envelope enum. The use-case's first act is `decode(input)`. `decode` is the only function that names garde. It returns `Result<PlInput, Envelope>`. `Valid<T>` never leaves that module. Inner domain and application never `use serde` or `use garde`. Application maps `PlInput` to value objects, returns output PL, and maps domain errors to the envelope. Presentation serializes success and maps `serde_path_to_error` on HTTP JSON into the same `VALIDATION_FAILED` / `violations[]` document, then skips the port. InProc has no serde step. It still calls `decode`.
 
-Codec failures are shape and field constraints on PL primitives, including cross-field rules that need no entity. Entity invariants, VO `TryFrom`, and uniqueness against a loaded row are domain or SPI and never `VALIDATION_FAILED`. sqlx does not garde-parse this cell's own rows. A corrupt own row is a server bug. Infrastructure MAY serde+garde a foreign wire into SPI types. That failure is not `VALIDATION_FAILED`. Webhook: signature on the raw body, then this cell's input PL, then `decode`.
+Codec failures are shape and field constraints on PL primitives, including cross-field rules that need no entity. Entity invariants, VO `TryFrom`, and uniqueness against a loaded row are domain or SPI and never `VALIDATION_FAILED`. The sea-orm adapter does not garde-parse this cell's own rows. A corrupt own row is a server bug. Infrastructure MAY serde+garde a foreign wire into SPI types. That failure is not `VALIDATION_FAILED`. Webhook: signature on the raw body, then this cell's input PL, then `decode`.
 
 ### Consequences
 
@@ -461,19 +467,19 @@ Three lanes per cell, named by layer. Cargo homes differ from lane names.
 
 **Unit** is domain. `#[cfg(test)]` next to the unit. Entities, value objects, errors, codec and persistence-mapper round-trips. No I/O. No doubles. Fluent builder next to the entity: `.build()` reconstructs, `.build_new()` creates, faker fills unused fields, never assert on faker output. Tests never call `SystemTime::now` or `Utc::now`. Tests use kernel `FakeClock`.
 
-**Integration** is application. `#[cfg(test)]` inside the cell crate, in `integration` modules so nextest can exclude them from the unit profile. Direct `new` of the use-case with this cell’s real sqlx adapter on the cell-role pool. Handwritten fakes for leaving SPIs. No HTTP. No `app`. This lane owns the sqlx adapter against a real schema.
+**Integration** is application. `#[cfg(test)]` inside the cell crate, in `integration` modules so nextest can exclude them from the unit profile. Direct `new` of the use-case with this cell’s real sea-orm adapter on the cell-role pool. Handwritten fakes for leaving SPIs. No HTTP. No `app`. This lane owns the sea-orm adapter against a real schema.
 
-**E2E** is presentation. Cell `tests/` sees only the re-export set. Hits `new` + `router` with tower. Real sqlx, fake leaving SPIs. Never boots `app`. One command and one query per public use-case that has an HTTP handler. No handler unit tests. Unpublished REST is case by case, not a floor.
+**E2E** is presentation. Cell `tests/` sees only the re-export set. Hits `new` + `router` with tower. Real sea-orm adapter, fake leaving SPIs. Never boots `app`. One command and one query per public use-case that has an HTTP handler. No handler unit tests. Unpublished REST is case by case, not a floor.
 
-Cargo `tests/` is E2E, not application integration. Application tests must see `pub(crate)` sqlx types.
+Cargo `tests/` is E2E, not application integration. Application tests must see `pub(crate)` `sea_orm` types.
 
-GRANT proof lives in `crates/app/tests`. Open two cell-role pools. A planted cross-schema `query` expects SQLSTATE `42501`. Not a product E2E. Not a coverage cell. Cell crates never name another cell’s tables. Cross-cell workflow tests are not a lane.
+GRANT proof lives in `crates/app/tests`. Open two cell-role pools. A planted cross-schema statement expects SQLSTATE `42501`. Not a product E2E. Not a coverage cell. Cell crates never name another cell’s tables. Cross-cell workflow tests are not a lane.
 
 Always-on Postgres. Compose locally, CI service. Per-worker database. Production schema names, migrator LOGIN plus cell LOGIN, ops-shaped GRANTs. Fail fast if unreachable, before db lanes. Tests never start Postgres. Testcontainers is out. `#[sqlx::test]` is out.
 
 A fake is a handwritten struct next to the SPI, `#[cfg(test)]`. Not InProc. mockall is not law. No workspace fake crate. An in-memory own-store exists only so the SPI contract has two adapters. Unit has no doubles.
 
-A contract is a `pub` function next to the SPI, behind cell feature `contract`, off by default. Every adapter invokes it: fake and sqlx adapter from cell `#[cfg(test)]`; InProc from `app` tests with the feature enabled on a `dev-dependencies` path. Prod `cargo build` does not enable it. Not a spec.
+A contract is a `pub` function next to the SPI, behind cell feature `contract`, off by default. Every adapter invokes it: fake and sea-orm adapter from cell `#[cfg(test)]`; InProc from `app` tests with the feature enabled on a `dev-dependencies` path. Prod `cargo build` does not enable it. Not a spec.
 
 Minima: every command ≥1 happy path and ≥1 error (integration). Every domain invariant a rejection test (unit). Every persistence mapper a round-trip (unit). Every SPI method on that port’s contract.
 
@@ -481,7 +487,7 @@ Runner is cargo-nextest 0.9. Invocation is `cargo nextest run`. `cargo test` is 
 
 80% line coverage per cell is CI law via cargo-llvm-cov. Merge unit + integration + e2e. Exclude tests, fakes, builders, and contract modules. Kernel and `app` have no floor. CI fails the cell below 80%. The floor follows the cell, not the domain folder.
 
-Event-sourcing persistence tests stay the application lane: real sqlx adapter, in-memory double for the SPI contract only.
+Event-sourcing persistence tests stay the application lane: real sea-orm adapter, in-memory double for the SPI contract only.
 
 ### Consequences
 
@@ -561,7 +567,7 @@ Ticks live in `presentation/ticks/<use-case>/`. Thin driving adapters. They call
 
 A tick is an unpublished command. It lists due rows through a read SPI and enqueues through a cell WorkSink. It does not `save` an aggregate. It must not run a tenanted command.
 
-WorkSink has one method per work type. Each takes that work’s Published Language struct, including `work_key`. The sqlx adapter fills `work_type` and inserts into that cell’s `work` table. Unique `(work_type, work_key)`. Duplicate enqueue is `ON CONFLICT DO NOTHING`. No FIFO. Payload is PL JSON. `correlation_id` is copied onto the row. `actor_id` is present only when the work port is a REST twin. Integration events stay on the outbox. No queue crate.
+WorkSink has one method per work type. Each takes that work’s Published Language struct, including `work_key`. The sea-orm adapter fills `work_type` and inserts into that cell’s `work` table. Unique `(work_type, work_key)`. Duplicate enqueue is `ON CONFLICT DO NOTHING`. No FIFO. Payload is PL JSON. `correlation_id` is copied onto the row. `actor_id` is present only when the work port is a REST twin. Integration events stay on the outbox. No queue crate.
 
 Work drain is infrastructure, same grain as the outbox. The cell owns the table, claim SQL, and loop body, and exports `spawn_work_drain`. `app` binds unpublished work ports, spawns, owns poll interval and shutdown. One drain task per cell per process. Claim `FOR UPDATE SKIP LOCKED`, call one work port by `work_type`, mark done or backoff. Poison row does not block the head. Cell does not spawn at `new`. System work ports take no `actor_id`.
 
@@ -571,7 +577,7 @@ Duplicate ticks across replicas are legal. No leader lock. Once-work uniqueness 
 
 Tick mints a UUIDv7 `CorrelationId` and sets `source` to `tick`. Drain keeps that id and sets `source` to `work`. One wide event per tick invocation and per work item. Fields: `msg`, `correlationId`, `actorId` when present, `duration_ms`, envelope `type` on errors, `source`. No HTTP method/path/status. Domain events do not carry `CorrelationId`. Logger mix in `app` is `api` | `webhook` | `tick` | `work`.
 
-Tick use-case and work drain are application integration: real sqlx, fake leaving SPIs, no HTTP, no `app`. Tick presentation adapter has no e2e floor. Cell tests never boot `app` and spawn neither loop.
+Tick use-case and work drain are application integration: real sea-orm adapter, fake leaving SPIs, no HTTP, no `app`. Tick presentation adapter has no e2e floor. Cell tests never boot `app` and spawn neither loop.
 
 A cell with no ticks has no `work` table, no `spawn_ticks`, and no `spawn_work_drain`.
 
@@ -595,7 +601,7 @@ PL Money is `{ amount, currency }`. `amount` is a JSON number, integer minor uni
 
 Kernel `Money` is `i64` minor units (same cap) plus ISO currency. Same-currency `add`, `subtract`, `compare`. `allocate(weights)` only; remainder pennies to the first recipients; parts sum to the original. No `divide` that returns one `Money`. No FX method. `create` rejects unknown ISO and out-of-range amounts. `to_plain()` is `{ amount: i64, currency: String }` and is not serde. Kernel stays serde-free. ISO 4217 fraction digits live in kernel as data.
 
-Domain, application, and this cell's sqlx adapter MAY import kernel `Money` and `Instant`. Presentation, InProc, and `domain/api` MUST NOT. `domain/api` MAY import the ISO 4217 table. Application calls `Money::create` / `to_plain()` and formats instants. Decode never names `Money`.
+Domain, application, and this cell's sea-orm adapter MAY import kernel `Money` and `Instant`. Presentation, InProc, and `domain/api` MUST NOT. `domain/api` MAY import the ISO 4217 table. Application calls `Money::create` / `to_plain()` and formats instants. Decode never names `Money`.
 
 Ids are opaque non-empty strings. New aggregates mint UUIDv7, lowercase, hyphenated (RFC 9562), via `uuid` 1. Application mints. Domain does not call `Uuid::now_v7`. Kernel has no generic `Id`. A cell MAY wrap. Reconstruct takes the stored string.
 
@@ -623,7 +629,7 @@ Target path is `crates/kernel`. The kernel is a library, not a cell. No Open Hos
 
 ### Decision
 
-Framework-free rlib of shared types and ports. It never depends on a cell. It stays serde-free, axum-free, sqlx-free, tracing-free, uuid-free. The only crate dep is `time`.
+Framework-free rlib of shared types and ports. It never depends on a cell. It stays serde-free, axum-free, sqlx-free, sea-orm-free, tracing-free, uuid-free. The only crate dep is `time`.
 
 Exports exactly:
 
@@ -645,7 +651,7 @@ Forbidden in kernel: Envelope, Id, CorrelationId, ActorId, a Result alias, outbo
 
 Layer imports:
 
-- Money / Instant — domain, application, this cell’s sqlx adapter; not presentation, InProc, or `domain/api`
+- Money / Instant — domain, application, this cell’s sea-orm adapter; not presentation, InProc, or `domain/api`
 - Clock trait — application only
 - Logger / Metrics — application, infrastructure, presentation; not inner domain, not `domain/api`
 - Violation — `domain/api` only

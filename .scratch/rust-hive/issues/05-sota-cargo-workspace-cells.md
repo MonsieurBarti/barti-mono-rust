@@ -7,13 +7,13 @@ Blocked by:
 
 ## Question
 
-What is the current state of the art for a Rust cargo workspace that maps naboo hive packaging onto crates: one crate per cell, a framework-free kernel crate, and one composition-root binary that binds leaving SPIs?
+What is the current state of the art for a Rust cargo workspace that maps hive packaging onto crates: one crate per cell, a framework-free kernel crate, and one composition-root binary that binds leaving SPIs?
 
 Constraints:
 
 - Latest stable versions only. Rust edition current stable.
 - Cover: crate-type (lib vs bin), visibility (`pub(crate)` vs public API = Open Host only), how to forbid cell A application from importing cell B, `cargo deny` / crate-graph lint vs feature flags, DI without Nest (nject, shaku, inventory, hand-rolled composition root).
-- Naboo law to port: cell module never names a provider cell; only the composition root binds InProc; Open Host is the exported API-port set.
+- Law to port: cell module never names a provider cell; only the composition root binds InProc; Open Host is the exported API-port set.
 - Recommend a workspace layout and a compile-time wall tool. Pin majors.
 
 Asset: `.scratch/rust-hive/research/05-sota-cargo-workspace-cells.md`

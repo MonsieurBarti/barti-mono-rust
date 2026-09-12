@@ -7,7 +7,7 @@ Blocked by: 03, 07, 08
 
 ## Question
 
-Port naboo chapter 5 to Rust.
+Port chapter 5 to Rust.
 
 Locked: no CQRS bus crate; API-port traits plus composition root; presentation never sees a bus; the application use-case implements the API port; domain events never leave the cell. Research: [What is the current SOTA Rust approach to in-process CQRS, domain events, and a transactional outbox on Postgres?](03-sota-cqrs-events-outbox.md). Packaging: [How is a cell packaged, and what is the composition root without Nest?](07-cell-packaging-and-composition-root.md).
 
@@ -35,7 +35,6 @@ Command pipeline is a per-cell choice, not architecture law.
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Command**, **Query**, **Write SPI**, **Read SPI**.
 
-
 ## Comments
 
 ### Round 1
@@ -62,6 +61,3 @@ Four arrows accepted:
 ### Round 3
 
 Q12 A: record that draft, close the ticket, add those glossary terms.
-
-
-

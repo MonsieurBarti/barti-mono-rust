@@ -10,17 +10,17 @@ Pin majors: `axum` 0.8, `tokio` 1, `hyper` 1, `tower` 0.5, `tower-http` 0.6, `ht
 
 Pin exact crates.io versions as of 2026-09-11:
 
-| Crate | Version | crates.io published |
-| --- | --- | --- |
-| `axum` | 0.8.9 | 2026-04-14 |
-| `axum-core` | 0.5.6 | 2025-12-27 |
-| `axum-extra` | 0.12.6 | 2026-04-14 |
-| `tokio` | 1.53.1 | 2026-07-20 |
-| `tower` | 0.5.3 | 2026-01-12 |
-| `tower-http` | 0.6.11 | 2026-05-18 |
-| `hyper` | 1.11.1 | 2026-08-28 |
-| `hyper-util` | 0.1.20 | 2026-02-02 |
-| `http` | 1.5.0 | 2026-07-29 |
+| Crate        | Version | crates.io published |
+| ------------ | ------- | ------------------- |
+| `axum`       | 0.8.9   | 2026-04-14          |
+| `axum-core`  | 0.5.6   | 2025-12-27          |
+| `axum-extra` | 0.12.6  | 2026-04-14          |
+| `tokio`      | 1.53.1  | 2026-07-20          |
+| `tower`      | 0.5.3   | 2026-01-12          |
+| `tower-http` | 0.6.11  | 2026-05-18          |
+| `hyper`      | 1.11.1  | 2026-08-28          |
+| `hyper-util` | 0.1.20  | 2026-02-02          |
+| `http`       | 1.5.0   | 2026-07-29          |
 
 Do not take `tower-http` 0.7.1. `axum` 0.8.9 depends on `tower-http ^0.6.8`. `tonic` 0.14.6 (published 2026-05-07) optionally depends on `axum ^0.8` and `tower ^0.5`. Keep it off the HTTP pin until a cell needs gRPC.
 
@@ -28,11 +28,11 @@ This stack is a library, not a Nest-like module system. `Router::nest` and `Rout
 
 ## Compared
 
-| Stack | Latest stable | Recent downloads | Router | Extractors | Middleware | Graceful shutdown | AuthN inject `actor_id` | Why it lost / won |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| **axum 0.8.9** | 2026-04-14 | 115M | `Router::route` / `nest` / `merge`; path `{id}` / `{*rest}` since 0.8 | `FromRequest` / `FromRequestParts`; `Path`, `Query`, `Json`, `Extension`, `State` | No bespoke system. Uses `tower::Service` + `tower-http`. `middleware::from_fn` for app code. | `axum::serve(listener, app).with_graceful_shutdown(tokio::signal::ctrl_c())` | `from_fn` reads `Authorization`, inserts typed `ActorId` into extensions; handler extracts it | **Winner.** Tokio-rs first party. Shares middleware with hyper/tonic. Composition is a tree of routers, not a DI container. |
-| actix-web 4.15.0 | 2026-08-21 | 10M | `App` + `Scope` + `Resource`; `{name}` path segments | `FromRequest`; `web::Path`, `Json`, `Query`, `ReqData` | Own `Service` + `Transform`. `wrap` / `wrap_fn` / `middleware::from_fn`. Does not speak tower. | OS signals by default. `shutdown_timeout` (30s). `shutdown_signal(fut)` override. `disable_signals` available. | `wrap_fn` can insert request-local data; `FromRequest` can extract `actor_id` | Lost. Own runtime (`actix-rt`) and middleware trait. Worker factory clones the app. No shared stack with tonic. More framework than the hive wants. |
-| poem 3.1.12 | 2025-07-28 | 700k | `Route::at`; still `:name` captures | `FromRequest`; `web::Path`, `Query`, `Data` | Own `Middleware` + `EndpointExt::with`. Optional `tower-compat` feature. | `Server::run_with_graceful_shutdown(ep, signal, timeout)` | `Data<T>` from request extensions | Lost. Last crates.io release is 13 months old. Optional tower, not native. Tiny ecosystem vs axum. No successor crate. |
+| Stack            | Latest stable | Recent downloads | Router                                                                | Extractors                                                                        | Middleware                                                                                     | Graceful shutdown                                                                                              | AuthN inject `actor_id`                                                                       | Why it lost / won                                                                                                                                   |
+| ---------------- | ------------- | ---------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **axum 0.8.9**   | 2026-04-14    | 115M             | `Router::route` / `nest` / `merge`; path `{id}` / `{*rest}` since 0.8 | `FromRequest` / `FromRequestParts`; `Path`, `Query`, `Json`, `Extension`, `State` | No bespoke system. Uses `tower::Service` + `tower-http`. `middleware::from_fn` for app code.   | `axum::serve(listener, app).with_graceful_shutdown(tokio::signal::ctrl_c())`                                   | `from_fn` reads `Authorization`, inserts typed `ActorId` into extensions; handler extracts it | **Winner.** Tokio-rs first party. Shares middleware with hyper/tonic. Composition is a tree of routers, not a DI container.                         |
+| actix-web 4.15.0 | 2026-08-21    | 10M              | `App` + `Scope` + `Resource`; `{name}` path segments                  | `FromRequest`; `web::Path`, `Json`, `Query`, `ReqData`                            | Own `Service` + `Transform`. `wrap` / `wrap_fn` / `middleware::from_fn`. Does not speak tower. | OS signals by default. `shutdown_timeout` (30s). `shutdown_signal(fut)` override. `disable_signals` available. | `wrap_fn` can insert request-local data; `FromRequest` can extract `actor_id`                 | Lost. Own runtime (`actix-rt`) and middleware trait. Worker factory clones the app. No shared stack with tonic. More framework than the hive wants. |
+| poem 3.1.12      | 2025-07-28    | 700k             | `Route::at`; still `:name` captures                                   | `FromRequest`; `web::Path`, `Query`, `Data`                                       | Own `Middleware` + `EndpointExt::with`. Optional `tower-compat` feature.                       | `Server::run_with_graceful_shutdown(ep, signal, timeout)`                                                      | `Data<T>` from request extensions                                                             | Lost. Last crates.io release is 13 months old. Optional tower, not native. Tiny ecosystem vs axum. No successor crate.                              |
 
 Losers outside the ticket trio, checked so they are not silent successors:
 
@@ -91,17 +91,17 @@ axum crate docs also show tokio `task_local!` for request identity. Prefer exten
 
 ## Fit to hive
 
-Hive law (naboo `docs/architecture.md` ch. 1–3): the composition root is the only process entry that imports every cell and binds leaving SPIs. Human AuthN/AuthZ stays at that edge. Cells receive `actorId`. Driving adapters call API ports. Open Host is the set of those ports, not HTTP. HTTP is a driving adapter. There is no Nest-like module system to port.
+Hive law (`docs/architecture.md` ch. 1–3): the composition root is the only process entry that imports every cell and binds leaving SPIs. Human AuthN/AuthZ stays at that edge. Cells receive `actorId`. Driving adapters call API ports. Open Host is the set of those ports, not HTTP. HTTP is a driving adapter. There is no Nest-like module system to port.
 
-| Hive piece | axum mapping |
-| --- | --- |
-| Composition root | `main` + one `Router`. Nests/merges each cell's presentation `Router`. Binds SPI adapters. Calls `axum::serve`. |
+| Hive piece                          | axum mapping                                                                                                                        |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| Composition root                    | `main` + one `Router`. Nests/merges each cell's presentation `Router`. Binds SPI adapters. Calls `axum::serve`.                     |
 | Cell presentation (driving adapter) | A `Router` of handlers. Each handler extracts PL + `ActorId`, calls that cell's API port. The handler does not import another cell. |
-| API port / Open Host | A Rust trait (or function set) in the cell. HTTP does not own it. |
-| SPI | Cell-owned trait. Composition root injects the adapter when constructing the cell's router/state. |
-| Published Language | Request/response types at the handler. Validated at the cell edge (separate ticket). |
-| Process-edge AuthN | One `from_fn` / `route_layer` in the composition root. Injects `actor_id`. Token never crosses into a cell crate. |
-| No Nest modules | `Router` is a value. No `AppModule`, no `@Global()`, no cell-to-cell HTTP inside one process. Cell → cell stays InProc SPI. |
+| API port / Open Host                | A Rust trait (or function set) in the cell. HTTP does not own it.                                                                   |
+| SPI                                 | Cell-owned trait. Composition root injects the adapter when constructing the cell's router/state.                                   |
+| Published Language                  | Request/response types at the handler. Validated at the cell edge (separate ticket).                                                |
+| Process-edge AuthN                  | One `from_fn` / `route_layer` in the composition root. Injects `actor_id`. Token never crosses into a cell crate.                   |
+| No Nest modules                     | `Router` is a value. No `AppModule`, no `@Global()`, no cell-to-cell HTTP inside one process. Cell → cell stays InProc SPI.         |
 
 `State<S>` on `Router<S>` is the composition-root bag of API-port handles and SPI adapters. `FromRef` lets a handler take one port without seeing the whole bag. That is wiring, not a module system.
 

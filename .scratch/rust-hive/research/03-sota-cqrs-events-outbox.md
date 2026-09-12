@@ -46,13 +46,13 @@ A poll interval remains the source of truth when a notify is lost.
 
 ### Pin
 
-| Piece | Choice | Version |
-| --- | --- | --- |
-| CQRS dispatch | No crate. API-port trait + application use-case. | — |
-| In-cell domain events | No crate. Kernel publisher trait. Cell adapter after commit. | — |
-| Outbox write + drain SQL | Cell-owned table. Same transaction as `save`. | — |
-| Postgres client for that txn and optional notify | `sqlx` (`Transaction`, `PgListener`) | **0.9.0** |
-| Runtime | `tokio` (not a domain bus) | **1.53.1** |
+| Piece                                            | Choice                                                       | Version    |
+| ------------------------------------------------ | ------------------------------------------------------------ | ---------- |
+| CQRS dispatch                                    | No crate. API-port trait + application use-case.             | —          |
+| In-cell domain events                            | No crate. Kernel publisher trait. Cell adapter after commit. | —          |
+| Outbox write + drain SQL                         | Cell-owned table. Same transaction as `save`.                | —          |
+| Postgres client for that txn and optional notify | `sqlx` (`Transaction`, `PgListener`)                         | **0.9.0**  |
+| Runtime                                          | `tokio` (not a domain bus)                                   | **1.53.1** |
 
 Ticket 02 owns the process-wide Postgres client.
 
@@ -72,26 +72,26 @@ They are the wrong shape for hive CQRS.
 
 ## Compared
 
-| Candidate | Stable pin | Why it lost |
-| --- | --- | --- |
-| Traits + composition root (winner) | no crate | Presentation injects the API port. The use-case is the handler. Domain events stay in-cell. Outbox is SQL. |
-| `cqrs-es` + `postgres-es` | 0.5.0 / 0.5.0 | `CqrsFramework::execute` is a process bus over an event store. `Query::dispatch` runs after commit and the docs list "publish events to messaging service" and "trigger a command on another aggregate". That leaks domain events and invites chatty cell-to-cell commands. Hive CQRS is not event-sourced by default. |
-| `eventastic` + `eventastic_postgres` | 0.5.0 / 0.5.0 | Closest outbox story ("transactional outbox pattern", mandatory transactions). Still an ES aggregate framework. Side effects ride the event-sourced `Aggregate` trait. Hive first-merge is state documents. |
-| `disintegrate` + `disintegrate-postgres` | 4.0.0 / 4.0.1 | Event-stream decision engine with `PgEventListener`. Forces event sourcing. `DecisionMaker` is not an API port. |
-| `esrs` | 0.18.0 (2024-11-25) | CQRS/ES with `EventBus` adapters for Kafka and Rabbit. Domain events would leave the cell. Last stable is older than the 2026 field. |
-| `es-entity` | 0.12.21 | Galoy ES persistence on sqlx. Not a command/query bus. Still ES-first. |
-| `distributed` | 4.12.1 | Fullstack ES+CQRS+GraphQL generator. 1377 all-time downloads. Not a cell primitive. |
-| `thalo` | 0.8.0 (2023-11-21) | WASM event-sourcing runtime. Stale. |
-| `eventually` / `cqrs` | 0.4.0 / 0.3.1 | Unmaintained (2020 / 2019). |
-| `eventstore` / `kurrentdb` / `eventsourcingdb` | 4.0.0 / 1.2.0 / 2.0.8 | Second database. Chapter 7 forbids EventStoreDB and any second store. |
-| `messagebus` | 0.15.2 (2024-02-07) | Process-global inter-module bus. Presentation would see it. Cells would share types. |
-| `event-emitter-rs` / `async-event-emitter` | 0.1.4 / 0.1.5 | Stringly EventEmitter clones. 0.1.4 is 2020. Broadcast-style emitters drop or lag. Wrong for after-persist domain facts. |
-| `tokio::sync::broadcast` | tokio 1.53.1 | Official MPMC broadcast. Capacity overflow returns `RecvError::Lagged` and drops messages. Domain events after persist must not drop. |
-| `sqlxmq` | 0.6.0 | Postgres job queue with `mq*` schema and transactional spawn. A job runner is not a producer-owned integration-event outbox. The consumer would share a queue schema. Hive drain is cell infrastructure. |
-| `pgmq` | 0.33.7 (newest 0.34.0-alpha.6) | SQS-like queue. Docs point at the Tembo Postgres extension. Hive outbox is a cell table, not an extension queue. The consumer must not read the producer collection. |
-| `graphile_worker` | 0.13.5 | Durable jobs with `SKIP LOCKED` and `LISTEN`/`NOTIFY` in schema `graphile_worker`. Right primitives, wrong product. It is a worker framework, not a cell outbox. Drain is not a presentation worker and not a job runner. |
-| `apalis` / `apalis-sql` | 0.7.4 | Background task processor. Same mismatch as sqlxmq. |
-| `outbox-relay` | 0.1.0 (2021) | Kafka relay. One version. Stale. Ships events out of process. |
+| Candidate                                      | Stable pin                     | Why it lost                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Traits + composition root (winner)             | no crate                       | Presentation injects the API port. The use-case is the handler. Domain events stay in-cell. Outbox is SQL.                                                                                                                                                                                                             |
+| `cqrs-es` + `postgres-es`                      | 0.5.0 / 0.5.0                  | `CqrsFramework::execute` is a process bus over an event store. `Query::dispatch` runs after commit and the docs list "publish events to messaging service" and "trigger a command on another aggregate". That leaks domain events and invites chatty cell-to-cell commands. Hive CQRS is not event-sourced by default. |
+| `eventastic` + `eventastic_postgres`           | 0.5.0 / 0.5.0                  | Closest outbox story ("transactional outbox pattern", mandatory transactions). Still an ES aggregate framework. Side effects ride the event-sourced `Aggregate` trait. Hive first-merge is state documents.                                                                                                            |
+| `disintegrate` + `disintegrate-postgres`       | 4.0.0 / 4.0.1                  | Event-stream decision engine with `PgEventListener`. Forces event sourcing. `DecisionMaker` is not an API port.                                                                                                                                                                                                        |
+| `esrs`                                         | 0.18.0 (2024-11-25)            | CQRS/ES with `EventBus` adapters for Kafka and Rabbit. Domain events would leave the cell. Last stable is older than the 2026 field.                                                                                                                                                                                   |
+| `es-entity`                                    | 0.12.21                        | Galoy ES persistence on sqlx. Not a command/query bus. Still ES-first.                                                                                                                                                                                                                                                 |
+| `distributed`                                  | 4.12.1                         | Fullstack ES+CQRS+GraphQL generator. 1377 all-time downloads. Not a cell primitive.                                                                                                                                                                                                                                    |
+| `thalo`                                        | 0.8.0 (2023-11-21)             | WASM event-sourcing runtime. Stale.                                                                                                                                                                                                                                                                                    |
+| `eventually` / `cqrs`                          | 0.4.0 / 0.3.1                  | Unmaintained (2020 / 2019).                                                                                                                                                                                                                                                                                            |
+| `eventstore` / `kurrentdb` / `eventsourcingdb` | 4.0.0 / 1.2.0 / 2.0.8          | Second database. Chapter 7 forbids EventStoreDB and any second store.                                                                                                                                                                                                                                                  |
+| `messagebus`                                   | 0.15.2 (2024-02-07)            | Process-global inter-module bus. Presentation would see it. Cells would share types.                                                                                                                                                                                                                                   |
+| `event-emitter-rs` / `async-event-emitter`     | 0.1.4 / 0.1.5                  | Stringly EventEmitter clones. 0.1.4 is 2020. Broadcast-style emitters drop or lag. Wrong for after-persist domain facts.                                                                                                                                                                                               |
+| `tokio::sync::broadcast`                       | tokio 1.53.1                   | Official MPMC broadcast. Capacity overflow returns `RecvError::Lagged` and drops messages. Domain events after persist must not drop.                                                                                                                                                                                  |
+| `sqlxmq`                                       | 0.6.0                          | Postgres job queue with `mq*` schema and transactional spawn. A job runner is not a producer-owned integration-event outbox. The consumer would share a queue schema. Hive drain is cell infrastructure.                                                                                                               |
+| `pgmq`                                         | 0.33.7 (newest 0.34.0-alpha.6) | SQS-like queue. Docs point at the Tembo Postgres extension. Hive outbox is a cell table, not an extension queue. The consumer must not read the producer collection.                                                                                                                                                   |
+| `graphile_worker`                              | 0.13.5                         | Durable jobs with `SKIP LOCKED` and `LISTEN`/`NOTIFY` in schema `graphile_worker`. Right primitives, wrong product. It is a worker framework, not a cell outbox. Drain is not a presentation worker and not a job runner.                                                                                              |
+| `apalis` / `apalis-sql`                        | 0.7.4                          | Background task processor. Same mismatch as sqlxmq.                                                                                                                                                                                                                                                                    |
+| `outbox-relay`                                 | 0.1.0 (2021)                   | Kafka relay. One version. Stale. Ships events out of process.                                                                                                                                                                                                                                                          |
 
 `sqlx` 0.9.0 wins the persistence slot for this pattern because `Pool::begin` yields a `Transaction` that rolls back on drop, and `PgListener` is a first-party `LISTEN` stream.
 
@@ -101,7 +101,7 @@ They do not change the SQL.
 
 ## Fit to hive
 
-Port of naboo chapters 4, 5, 7 (and the drain rule in 16). Adapt. Do not copy Nest or Mongo.
+Port of chapters 4, 5, 7 (and the drain rule in 16). Adapt. Do not copy Nest or Mongo.
 
 ### Chapter 4 — Communication
 
@@ -128,8 +128,6 @@ The consumer drain adapter writes the consumer's tables.
 The consumer read path does not call the provider.
 
 ### Chapter 5 — CQRS
-
-Naboo keeps `@nestjs/cqrs` because Nest already ships a first-party bus and forbids a hand-rolled one.
 
 Rust has no first-party equivalent with that role.
 
@@ -271,8 +269,6 @@ The drain therefore polls even when notify is enabled.
 
 ### EventEmitter equivalent
 
-Naboo's adapter is EventEmitter2 behind a write-side events SPI.
-
 Rust SOTA for that SPI is a cell-local list of `async` handlers registered when the cell boots.
 
 After commit, the adapter awaits each matching handler.
@@ -319,4 +315,3 @@ That table is the outbox.
 - https://github.com/disintegrate-es/disintegrate
 - https://github.com/GaloyMoney/es-entity
 - https://github.com/patrickleet/distributed
-- Naboo law (port, not copy): `/Users/pierrelecorff/Projects/naboo/docs/architecture.md` chapters 4, 5, 7, 16

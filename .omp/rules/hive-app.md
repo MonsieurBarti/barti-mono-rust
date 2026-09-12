@@ -7,7 +7,7 @@ globs:
 `app` imports every cell and binds leaving SPIs. [Composition root](../../docs/adr/0004-composition-root.md)
 InProc lives in `app/inproc/<consumer>/<provider>.rs`. [Language](../../docs/adr/0002-language.md)
 `app` constructs named pools, clocks, Logger, Metrics, and InProc, then calls `new`. [Composition root](../../docs/adr/0004-composition-root.md)
-Cell `new` never takes `PgPool`. [Persistence](../../docs/adr/0007-persistence.md)
+Cell `new` never takes `DatabaseConnection`. [Persistence](../../docs/adr/0007-persistence.md)
 `telemetry.rs` owns `tracing` and OpenTelemetry. [Observability](../../docs/adr/0012-observability.md)
 Migrate env holds migrator DSNs; serve env holds cell-role DSNs only. [Persistence](../../docs/adr/0007-persistence.md)
 Middleware copies gateway identity headers; the bind is not public. [Authentication](../../docs/adr/0013-authentication.md)

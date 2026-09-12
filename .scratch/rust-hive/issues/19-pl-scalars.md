@@ -9,7 +9,7 @@ Blocked by: 04, 06
 
 Pin Published Language encodings for Money, ids, instants, calendar dates, and Clock.
 
-Locked: Published Language is JSON primitives; value objects stay inside the hexagon; codec is serde + garde. Glossary: [What ubiquitous language does the Rust hive keep from naboo, and what Nest/Mongo terms die?](06-rust-hive-glossary.md). Research: [What is the current SOTA Rust approach to Published Language validation at a cell edge?](04-sota-cell-edge-validation.md).
+Locked: Published Language is JSON primitives; value objects stay inside the hexagon; codec is serde + garde. Glossary: [What ubiquitous language does the Rust hive keep](06-rust-hive-glossary.md). Research: [What is the current SOTA Rust approach to Published Language validation at a cell edge?](04-sota-cell-edge-validation.md).
 
 Decide: Money on the wire and in the kernel; ids; instants; calendar dates; Clock. Re-justify from this hive, not from a port.
 
@@ -35,7 +35,6 @@ Postgres: `amount BIGINT`, `currency TEXT`, id `UUID`, instant `TIMESTAMPTZ`, ca
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Money**, **Instant**, **Calendar date**, **Clock**.
 
-
 ## Comments
 
 ### Round 1
@@ -50,7 +49,7 @@ Five arrows accepted (user: lgtm):
 
 ### Round 2
 
-Five arrows accepted (user: lgtm), then the naboo-port framing was rejected.
+Five arrows accepted (user: lgtm), then the port framing was rejected.
 
 - Q6 A: Kernel `Money` is `i64` minor units (same `±(2^53-1)` cap) plus ISO currency. Same-currency `add` / `subtract` / `compare`. `allocate(weights)` only. No `divide`. No FX. `to_plain()` is not serde. ISO 4217 fraction digits are kernel data.
 - Q7 A: Domain, application, and this cell's sqlx adapter MAY import kernel `Money` and `Instant`. Presentation, InProc, and `domain/api` MUST NOT. `domain/api` MAY import the ISO 4217 table. Decode never names `Money`.
@@ -60,7 +59,7 @@ Five arrows accepted (user: lgtm), then the naboo-port framing was rejected.
 
 ### Round 3
 
-Q11 A accepted (user: lgtm). Naboo is out of spec and argument. Tickets 01–18 stand. Map Notes stripped of naboo source law.
+Q11 A accepted (user: lgtm). Map Notes stripped of source law.
 
 Q12 and Q13 were accepted then challenged: the user wants something they can actually use. Destination (spec-only vs bootable) and host product are reopened.
 
@@ -73,8 +72,3 @@ Destination stays the charted spec: locked `docs/architecture.md` and stack-pin 
 ### Round 5
 
 Q16 A accepted (user: y). Draft recorded. Glossary written. Ticket closed.
-
-
-
-
-

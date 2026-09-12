@@ -14,7 +14,7 @@ Constraints:
 - Latest stable versions only.
 - Primary sources: crate docs and Postgres docs. Do not treat blog summaries as law.
 - Cover: whether a bus crate is needed, or traits + the composition root suffice; EventEmitter-equivalents; outbox in the same transaction as `save`; at-least-once drain.
-- Naboo law to port: presentation never sees the bus; application use-case implements the API port; domain events never leave the cell; integration events are Published Language, not Open Host.
+- Law to port: presentation never sees the bus; application use-case implements the API port; domain events never leave the cell; integration events are Published Language, not Open Host.
 - Recommend a concrete crate set or a no-crate pattern. Pin majors.
 
 Asset: `.scratch/rust-hive/research/03-sota-cqrs-events-outbox.md`

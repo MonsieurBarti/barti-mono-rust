@@ -7,7 +7,7 @@ Blocked by: 03, 04, 07
 
 ## Question
 
-Port naboo chapter 4.
+Port chapter 4.
 
 Decide: consumer-owned SPI trait shape; Published Language codecs on both sides of the hop; envelope `{ type, context }`; request/response default vs integration events; how a domain event crosses to another cell.
 
@@ -38,7 +38,6 @@ Every event carries `event_id` (uuid v7) and `event_type`. Each consumer keeps `
 One drain task per producer cell per process. Sequential await over bound subscribers. Mark published when all return ok. Redeliver the whole row on any failure. `attempts` and `next_attempt_at` with backoff in the claim predicate, so a poison row does not block the head of the queue. No ordering guarantee across rows.
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **SPI**, **Codec**, **Envelope**, **InProc adapter**, **Domain event**, **Integration event**.
-
 
 ## Comments
 

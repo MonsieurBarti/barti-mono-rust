@@ -9,7 +9,7 @@ Blocked by: 06, 07
 
 Pin the freight ubiquitous language and the named first cells for this hive.
 
-The host product is a B2B freight brokerage. The sketch is post a load → quote → book → settle. Hive terms stay. Cell identity tests stay: too-small, too-big, chatty, then fatten, local read model, merge. Glossary: [What ubiquitous language does the Rust hive keep from naboo, and what Nest/Mongo terms die?](06-rust-hive-glossary.md). Packaging: [How is a cell packaged, and what is the composition root without Nest?](07-cell-packaging-and-composition-root.md).
+The host product is a B2B freight brokerage. The sketch is post a load → quote → book → settle. Hive terms stay. Cell identity tests stay: too-small, too-big, chatty, then fatten, local read model, merge. Glossary: [What ubiquitous language does the Rust hive keep ?](06-rust-hive-glossary.md). Packaging: [How is a cell packaged, and what is the composition root without Nest?](07-cell-packaging-and-composition-root.md).
 
 Decide: freight glossary terms; domain folder names; which first cells exist.
 

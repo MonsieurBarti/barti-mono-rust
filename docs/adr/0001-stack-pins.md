@@ -15,8 +15,10 @@ Hive law pins exact crate and tool versions here. `docs/architecture.md` restate
 | `hyper` | 1.11.1 | with axum |
 | `tower` | 0.5.3 | with axum |
 | `tower-http` | 0.6.11 | `app` |
-| `sqlx` | 0.9.0 | cell sqlx adapter |
-| `sqlx-cli` | 0.9.0 | migrations |
+| `sqlx` | 0.9.0 | SeaORM driver. Cells depend on sea-orm, not sqlx. |
+| `sea-orm` | 2.0.2 | cell sea-orm adapter |
+| `sea-orm-migration` | 2.0.2 | cell migrations |
+| `sea-orm-cli` | 2.0.2 | migrate CLI. Not generate-entity. |
 | `serde` | 1.0.229 | cell edge |
 | `serde_json` | 1.0.151 | cell edge |
 | `serde_path_to_error` | 0.1.20 | cell edge |
@@ -33,7 +35,7 @@ Hive law pins exact crate and tool versions here. `docs/architecture.md` restate
 | `cargo-nextest` | 0.9.144 | `cargo nextest run` |
 | `cargo-llvm-cov` | 0.9.1 | 80% line per cell |
 
-Kernel depends on `time` only. Cells import none of `tracing`, OpenTelemetry, or a task-local crate. Cell e2e never boots `app`.
+Kernel depends on `time` only. Kernel is sqlx-free and sea-orm-free. Cells import none of `tracing`, OpenTelemetry, or a task-local crate. Cell e2e never boots `app`.
 
 ## Not pinned
 

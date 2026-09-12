@@ -10,8 +10,8 @@ A locked `docs/architecture.md` and stack-pin ADR for a greenfield Rust hive-cel
 
 - Domain: greenfield Rust hive-strict. Host product: B2B freight brokerage.
 - Skills every session: grilling, domain-modeling, research, codebase-design. Tracker: `docs/agents/issue-tracker.md`.
-- Standing: local markdown, never Linear. Latest crate versions only. Greenfield hive-strict. No legacy neighbours. Plan; do not implement product code on this map. Hive law only in spec and argument: no naboo, Nest, Mongo, or Linear.
-- Assumptions locked at charting: spec-only destination; freight brokerage; `AGENTS.md`; default triage labels. Tickets 01–24 stand as hive law. Destination `docs/architecture.md` is written.
+- Standing: local markdown, never Linear. Latest crate versions only. Greenfield hive-strict. No legacy neighbours. Plan; do not implement product code on this map. Hive law only in spec and argument.
+- Assumptions locked at charting: spec-only destination; freight brokerage; `AGENTS.md`; default triage labels. Tickets 01–25 stand as hive law. Destination `docs/architecture.md` is written. [Should the persistence adapter be an ORM?](issues/25-orm-adapter.md) supersedes the sqlx `query!` adapter surface.
 
 ## Decisions so far
 
@@ -20,12 +20,12 @@ A locked `docs/architecture.md` and stack-pin ADR for a greenfield Rust hive-cel
 - [What is the current SOTA Rust approach to in-process CQRS, domain events, and a transactional outbox on Postgres?](issues/03-sota-cqrs-events-outbox.md) — no bus crate; traits + outbox on the save transaction.
 - [What is the current SOTA Rust approach to Published Language validation at a cell edge?](issues/04-sota-cell-edge-validation.md) — serde + garde; VOs stay inside the hexagon.
 - [How should a Cargo workspace express one crate per cell, a kernel crate, and a composition-root binary?](issues/05-sota-cargo-workspace-cells.md) — crate-per-cell rlib, kernel rlib, app bin, cargo-deny wall.
-- [What ubiquitous language does the Rust hive keep from naboo, and what Nest/Mongo terms die?](issues/06-rust-hive-glossary.md) — hive terms stay; crate, sqlx adapter, codec, composition root, import wall, schema, table, cell role; promote, slice, neighbour die.
+- [What ubiquitous language does the Rust hive keep](issues/06-rust-hive-glossary.md) — hive terms stay; crate, sqlx adapter, codec, composition root, import wall, schema, table, cell role; promote, slice, neighbour die.
 - [How is a cell packaged, and what is the composition root without Nest?](issues/07-cell-packaging-and-composition-root.md) — crate-per-cell rlib with layer modules; InProc lives in `app`, so no cell-to-cell edge exists; leaving SPIs bind as generics.
 - [How do cells communicate in Rust hive-strict?](issues/08-hive-strict-communication.md) — consumer SPI in primitives; InProc in `app` maps both codecs; per-port envelope enum; events enter a consumer API port via a producer outbox drain.
 - [How is Postgres isolation enforced per cell?](issues/09-postgres-cell-isolation.md) — two LOGINs; ops GRANT; named pool in the sqlx adapter; no cross-cell txn; query! on the cell role, 42501 at runtime.
 - [What is the public driving-adapter surface?](issues/10-public-driving-adapters.md) — REST on axum; no GraphQL; no MCP; cell exports `router`; problem+json.
-- [Which naboo chapters drop as brownfield-only?](issues/11-brownfield-chapters-drop.md) — drop 8, 10, 14, Appendix A; strip brownfield paragraphs; still grill CQRS, ES, validation, observability, workers, PL scalars, kernel, freight cells.
+- [Which chapters drop as brownfield-only?](issues/11-brownfield-chapters-drop.md) — drop 8, 10, 14, Appendix A; strip brownfield paragraphs; still grill CQRS, ES, validation, observability, workers, PL scalars, kernel, freight cells.
 - [What are the test lanes, and what does each one boot?](issues/12-test-lanes.md) — unit=domain, integration=application with real sqlx, e2e=`router`; nextest 0.9; 80% llvm-cov; GRANT in `app` tests.
 - [How does AuthN/AuthZ work at the REST process edge?](issues/13-authn-rest-edge.md) — gateway in front; `app` copies identity headers; cell owns resource `FORBIDDEN`; webhooks verify vendor signatures.
 - [How does CQRS work inside a Rust cell?](issues/14-cqrs-inside-a-cell.md) — one use-case struct implements the port; no Command/Handler types; `get_by_id`/`save`; events SPI after commit; query never mutates.
@@ -39,21 +39,15 @@ A locked `docs/architecture.md` and stack-pin ADR for a greenfield Rust hive-cel
 - [Write the stack-pin ADR](issues/22-stack-pin-adr.md) — `docs/adr/0001-stack-pins.md`; axum 0.8.9; tower-http 0.6.11; sqlx 0.9.0; tracing 0.1.44 + OTLP 0.32; nextest 0.9.144.
 - [How are mutating REST commands made idempotent?](issues/23-rest-command-idempotency.md) — human POST/PATCH require `Idempotency-Key`; cell `idempotency_key` table; no If-Match hive law.
 - [Write the architecture document](issues/24-write-architecture-md.md) — `docs/architecture.md`; 16 chapters; majors only; REST includes `Idempotency-Key`.
-
-
-
+- [Should the persistence adapter be an ORM?](issues/25-orm-adapter.md) — sea-orm adapter; GRANT wall stays; no `query!`; handwritten entities; sqlx 0.9 driver only.
 
 ## Not yet specified
 
-
 ## Out of scope
 
-
 - Linear as the issue tracker.
-- Mongo, Nest, TypeScript, and naboo production code.
 - Frontend packages.
 - Extracting a cell into another deployable.
 - Implementing the freight product. This map ends at the spec.
 - Gateway product, IdP vendor, and roles catalog.
 - Auth issuance REST and SSO pages in this process.
-

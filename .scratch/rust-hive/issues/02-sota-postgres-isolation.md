@@ -14,7 +14,7 @@ Constraints:
 - Latest stable versions only.
 - Compare sqlx, diesel, sea-orm, tokio-postgres, and any 2026 successor against official docs.
 - Cover: compile-time vs runtime checked SQL, migrations, connection-per-cell, transactions that cannot span cells, schema-per-cell vs database-per-cell, `GRANT` on schemas vs tables.
-- Naboo law to port: exclusive collections, one credential carrier per cell, no cross-cell transaction. Mongo users become Postgres roles.
+- Law to port: exclusive collections, one credential carrier per cell, no cross-cell transaction. Mongo users become Postgres roles.
 - Recommend one stack and the isolation mechanism (schema + role, separate database, or other). Pin majors.
 
 Asset: `.scratch/rust-hive/research/02-sota-postgres-isolation.md`

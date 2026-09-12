@@ -6,12 +6,12 @@ As of 2026-09-11. Latest stable crates.io versions only.
 
 Pin this stack beside each API port:
 
-| Crate | Version | Role |
-| --- | --- | --- |
-| `serde` | 1.0.229 | Shape encode/decode of PL primitive structs |
-| `serde_json` | 1.0.151 | JSON value/string form of the same PL |
-| `serde_path_to_error` | 0.1.20 | Field path on shape failures |
-| `garde` | 0.23.0 | Constraint decode after shape parse |
+| Crate                 | Version | Role                                        |
+| --------------------- | ------- | ------------------------------------------- |
+| `serde`               | 1.0.229 | Shape encode/decode of PL primitive structs |
+| `serde_json`          | 1.0.151 | JSON value/string form of the same PL       |
+| `serde_path_to_error` | 0.1.20  | Field path on shape failures                |
+| `garde`               | 0.23.0  | Constraint decode after shape parse         |
 
 There is no Zod crate. Rust’s type is the schema. `serde` is the bidirectional codec. `garde` is the semantic gate Zod’s `.parse()` adds on top of TypeScript types.
 
@@ -31,23 +31,21 @@ Default PL containers use `#[serde(deny_unknown_fields)]`. Unknown JSON keys fai
 
 ## Compared
 
-| Approach | Latest stable | Why it lost / why it sits beside the winner |
-| --- | --- | --- |
-| **serde + serde_json** | 1.0.229 / 1.0.151 | Winner for encode/decode. Implements `Serialize`/`Deserialize` without runtime reflection. Maps JSON primitives onto Rust structs. Does not check email, length, range, or pattern. |
-| **garde** | 0.23.0 | Winner for constraints. Full rewrite of `validator`. Rules are traits. Derive covers enums. `Unvalidated<T>` / `Valid<T>` is a compile-time proof of validation. `Report` is a flat `(Path, Error)` list. Error messages use constraint parameters only. They do not attach submitted values. |
-| **validator** | 0.21.0 | Still maintained. Larger download count. Nested errors are a tree, not a flat report. `ValidationError` auto-inserts the field `value` into `params`. That fights hive “no submitted values” on `VALIDATION_FAILED`. No `Valid<T>` wrapper. Garde exists because this crate’s author asked for a rewrite. |
-| **serde_valid** | 3.1.2 | 2026 JSON-Schema-on-serde option. `from_json_value` does deserialize-plus-validate. Errors are nested JSON Schema trees (`errors` / `properties`), not `{ type, context }`. Couples PL to the JSON Schema vocabulary. Hive law is the Rust PL type beside the port, not a JSON Schema document. |
-| **schemars + jsonschema** | 1.2.2 / 0.56.0 | Generator plus runtime JSON Schema validator. Draft 2020-12. Useful later to *emit* MCP/OpenAPI schema from the same PL types. A second runtime gate duplicates serde. `jsonschema` validates `serde_json::Value`, not a typed port. `valico` 4.0.0 last published 2023-05-13. `jsonschema-valid` 0.5.2 last published 2023-11-08. Both are stale. |
-| **nutype** | 0.7.0 (0.8.0-beta.2 is pre-release) | Guaranteed newtypes. `try_new` and serde `Deserialize` refuse invalid inners. That is a value object, not PL. Putting nutypes on the API port leaks VOs onto the wire. Keep nutype inside the hexagon. Application maps PL primitives through `TryFrom`. |
-| **typestate crate** | 0.8.0 stable; 0.9.0-rc2 from 2021-09-02 | Proc-macro DSL for object protocols (`#[automaton]`, `#[state]`). Last crates.io activity 2021. Wrong layer. Aggregate lifecycle may use handwritten typestate inside domain. Cell-edge PL is runtime data, not a compile-time traffic light. Garde’s `Valid<T>` already covers the only typestate the edge needs. |
-| **facet / facet-json** | 0.46.5 / 0.46.1 (0.50.0-rc.7 is pre-release) | 2026 serde competitor (compile-time reflection). Not 1.0. Do not pin a hive on an rc. |
-| **validify** | 2.0.0 (2025-02-09) | Validate-and-modify derive. Quiet. Small download count. Adds mutation (sanitize-in-place) that hive decode should not do at the edge. |
+| Approach                  | Latest stable                                | Why it lost / why it sits beside the winner                                                                                                                                                                                                                                                                                                        |
+| ------------------------- | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **serde + serde_json**    | 1.0.229 / 1.0.151                            | Winner for encode/decode. Implements `Serialize`/`Deserialize` without runtime reflection. Maps JSON primitives onto Rust structs. Does not check email, length, range, or pattern.                                                                                                                                                                |
+| **garde**                 | 0.23.0                                       | Winner for constraints. Full rewrite of `validator`. Rules are traits. Derive covers enums. `Unvalidated<T>` / `Valid<T>` is a compile-time proof of validation. `Report` is a flat `(Path, Error)` list. Error messages use constraint parameters only. They do not attach submitted values.                                                      |
+| **validator**             | 0.21.0                                       | Still maintained. Larger download count. Nested errors are a tree, not a flat report. `ValidationError` auto-inserts the field `value` into `params`. That fights hive “no submitted values” on `VALIDATION_FAILED`. No `Valid<T>` wrapper. Garde exists because this crate’s author asked for a rewrite.                                          |
+| **serde_valid**           | 3.1.2                                        | 2026 JSON-Schema-on-serde option. `from_json_value` does deserialize-plus-validate. Errors are nested JSON Schema trees (`errors` / `properties`), not `{ type, context }`. Couples PL to the JSON Schema vocabulary. Hive law is the Rust PL type beside the port, not a JSON Schema document.                                                    |
+| **schemars + jsonschema** | 1.2.2 / 0.56.0                               | Generator plus runtime JSON Schema validator. Draft 2020-12. Useful later to _emit_ MCP/OpenAPI schema from the same PL types. A second runtime gate duplicates serde. `jsonschema` validates `serde_json::Value`, not a typed port. `valico` 4.0.0 last published 2023-05-13. `jsonschema-valid` 0.5.2 last published 2023-11-08. Both are stale. |
+| **nutype**                | 0.7.0 (0.8.0-beta.2 is pre-release)          | Guaranteed newtypes. `try_new` and serde `Deserialize` refuse invalid inners. That is a value object, not PL. Putting nutypes on the API port leaks VOs onto the wire. Keep nutype inside the hexagon. Application maps PL primitives through `TryFrom`.                                                                                           |
+| **typestate crate**       | 0.8.0 stable; 0.9.0-rc2 from 2021-09-02      | Proc-macro DSL for object protocols (`#[automaton]`, `#[state]`). Last crates.io activity 2021. Wrong layer. Aggregate lifecycle may use handwritten typestate inside domain. Cell-edge PL is runtime data, not a compile-time traffic light. Garde’s `Valid<T>` already covers the only typestate the edge needs.                                 |
+| **facet / facet-json**    | 0.46.5 / 0.46.1 (0.50.0-rc.7 is pre-release) | 2026 serde competitor (compile-time reflection). Not 1.0. Do not pin a hive on an rc.                                                                                                                                                                                                                                                              |
+| **validify**              | 2.0.0 (2025-02-09)                           | Validate-and-modify derive. Quiet. Small download count. Adds mutation (sanitize-in-place) that hive decode should not do at the edge.                                                                                                                                                                                                             |
 
 `thiserror` 2.0.20 stays in-cell for domain errors. The port encodes those errors into the envelope. Cells never `downcast` a neighbour error.
 
 ## Fit to hive
-
-Naboo puts a Zod codec beside each API port. Primitives in. Primitives out. Both InProc sides encode and decode. Value objects stay inside the hexagon. The envelope is `{ type, context }`. Domain and application import no `zod`.
 
 Rust maps that 1:1.
 
@@ -106,4 +104,3 @@ Rust maps that 1:1.
 - https://docs.rs/nutype/0.7.0/nutype/
 - https://docs.rs/typestate/0.8.0/typestate/
 - https://docs.rs/thiserror/2.0.20/thiserror/
-- `/Users/pierrelecorff/Projects/naboo/docs/architecture.md` chapters 1, 4, 8, 11, 17 (PL, codecs, envelope, Zod-free domain)

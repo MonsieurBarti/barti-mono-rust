@@ -1,4 +1,4 @@
-# What ubiquitous language does the Rust hive keep from naboo, and what Nest/Mongo terms die?
+# What ubiquitous language does the Rust hive keep?
 
 Type: grilling
 Status: resolved

@@ -7,7 +7,7 @@ Blocked by: 10
 
 ## Question
 
-Port naboo chapter 15 onto REST-only axum.
+Port chapter 15 onto REST-only axum.
 
 Locked: composition-root middleware inserts `ActorId`; handlers extract a string; the body omits it; cells never see the token; tick ports take no `actor_id`. Public error mapping is [What is the public driving-adapter surface?](10-public-driving-adapters.md).
 
@@ -33,7 +33,6 @@ This ticket pins no JWT crate.
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Gateway**, **ActorId**.
 
-
 ## Comments
 
 ### Round 1
@@ -52,12 +51,9 @@ Five arrows accepted:
 - Q9 A: webhooks are unpublished, off the human gateway JWT. Driving adapter verifies the vendor signature. No `actor_id`. Bad signature is 401 `UNAUTHENTICATED`.
 - Q10 A: architecture names a gateway in front and this hive’s read contract. Gateway product, vendor, and roles catalog are not this map.
 
-
-
 ### Round 3
 
 Two arrows accepted:
 
 - Q11 A: API port takes `ActorId` as a string. Roles and permissions do not enter the cell.
 - Q12 A: Health on `app` requires no identity headers.
-

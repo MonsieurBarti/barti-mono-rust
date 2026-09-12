@@ -7,7 +7,7 @@ Blocked by: 10
 
 ## Question
 
-Port naboo chapter 13 onto REST-only axum. Do not assume Datadog.
+Port chapter 13 onto REST-only axum. Do not assume Datadog.
 
 Locked: public HTTP is REST; problem+json carries `correlationId` when present. Surface: [What is the public driving-adapter surface?](10-public-driving-adapters.md).
 
@@ -31,7 +31,6 @@ Tick and queue lines wait on [Where do ticks, queues, and workers live?](18-work
 
 Glossary: [CONTEXT.md](../../../CONTEXT.md) **Logger SPI**, **Metrics SPI**, **CorrelationId**, **Wide event**.
 
-
 ## Comments
 
 ### Round 1
@@ -53,8 +52,7 @@ Five arrows accepted:
 - Q8 A: echo `X-Correlation-ID` on every HTTP response, success and problem+json, including health. Body field stays problem+json only.
 - Q9 A: mix `correlationId`, `actorId` when present, `source` `api` or `webhook`. No `organizationId`. No `ip`. No `userAgent` on log lines.
 - Q10 A: OpenTelemetry trace id and `CorrelationId` both exist and differ. Do not copy `CorrelationId` into `trace_id`. Clients need not send `traceparent`. Tag the root span with `correlationId`. Baggage out until a second hive process.
-- Q11 A: wide event fields `msg`, `correlationId`, `actorId` when present, HTTP method and path, `duration_ms`, HTTP `status`, envelope `type` on errors, `source`. Redact key list as naboo, minus a Datadog scanner.
-
+- Q11 A: wide event fields `msg`, `correlationId`, `actorId` when present, HTTP method and path, `duration_ms`, HTTP `status`, envelope `type` on errors, `source`. Redact key list.
 
 ### Round 3
 
@@ -68,6 +66,3 @@ Two arrows accepted:
 One arrow accepted:
 
 - Q14: shared understanding confirmed. Close this ticket. Graduate [How are mutating REST commands made idempotent?](23-rest-command-idempotency.md).
-
-
-
