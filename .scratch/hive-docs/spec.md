@@ -99,7 +99,7 @@ This cell owns the `<cell>` schema.
 
 ## Kernel and app template
 
-Both pages share this skeleton. Not the cell skeleton. No Open Host. No Leaving SPIs. No Invariants. No schema sentence. No ticks, Work, HTTP, rustdoc, or file-tree headings.
+Both pages share this skeleton: title, untitled lead, How it works, See also. Not the cell skeleton. No Open Host. No Leaving SPIs. No Invariants. No schema sentence. No ticks, Work, HTTP, rustdoc, or file-tree headings.
 
 Lead is hive-plain. No crate path. No file list. Lead is at most 80 words. Page is at most 200 words. A page over 400 words is a spec reject.
 
@@ -344,7 +344,7 @@ Exact oasdiff and lychee versions are the implementation pin. Same law change as
 
 The committed file is generated. This slice is the contract for `POST /loads` after merge. Extra generated fields are allowed. Missing this operation, its `loads` tag, or these statuses is a fail.
 
-`operationId` is `create_load`. Schema property names are the JSON names. Envelope types stay out.
+`operationId` is `create_load`. Schema property names are the JSON names. Envelope types stay out. Constraint keywords in the slice (`minLength`, `maxItems`, `additionalProperties`) are illustrative. utoipa emits `ToSchema`, not garde. The next map does not chase drift on those keywords unless it adds `#[schema(...)]`.
 
 ```json
 {
