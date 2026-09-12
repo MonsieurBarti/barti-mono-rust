@@ -9,6 +9,7 @@ kernel.workspace = true
 loads.workspace = true
 axum.workspace = true
 tokio.workspace = true
+tower-http.workspace = true
 uuid.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true

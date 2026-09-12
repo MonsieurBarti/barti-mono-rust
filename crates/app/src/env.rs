@@ -65,6 +65,9 @@ impl ServeEnv {
         let loads_pool_max = required(&get, "LOADS_POOL_MAX")?
             .parse()
             .map_err(|_| BootError::invalid("LOADS_POOL_MAX"))?;
+        if loads_pool_max == 0 {
+            return Err(BootError::invalid("LOADS_POOL_MAX"));
+        }
         Ok(Self {
             loads_database_url,
             loads_pool_max,
@@ -157,6 +160,17 @@ mod tests {
         let err = ServeEnv::from_get(get(&[
             ("LOADS_DATABASE_URL", "postgres://loads@localhost/hive"),
             ("LOADS_POOL_MAX", "nope"),
+        ]))
+        .unwrap_err();
+        assert_eq!(err.var, "LOADS_POOL_MAX");
+        assert!(matches!(err.kind, BootErrorKind::Invalid));
+    }
+
+    #[test]
+    fn serve_rejects_zero_pool_max() {
+        let err = ServeEnv::from_get(get(&[
+            ("LOADS_DATABASE_URL", "postgres://loads@localhost/hive"),
+            ("LOADS_POOL_MAX", "0"),
         ]))
         .unwrap_err();
         assert_eq!(err.var, "LOADS_POOL_MAX");

@@ -2,4 +2,10 @@
 # Cell → app is a cargo error: app is bin-only, no lib target.
 deny = [
     { crate = "loads", wrappers = ["app"], reason = "hive: only composition root depends on cells" },
+    { crate = "tracing", wrappers = ["app", "axum", "axum-core", "hyper-util", "opentelemetry", "sqlx-core", "sqlx-postgres", "tower", "tower-http", "tracing-opentelemetry", "tracing-subscriber"], reason = "hive: cells import none of tracing or OpenTelemetry" },
+    { crate = "tracing-subscriber", wrappers = ["app", "tracing-opentelemetry"], reason = "hive: cells import none of tracing or OpenTelemetry" },
+    { crate = "tracing-opentelemetry", wrappers = ["app"], reason = "hive: cells import none of tracing or OpenTelemetry" },
+    { crate = "opentelemetry", wrappers = ["app", "opentelemetry-http", "opentelemetry-otlp", "opentelemetry-proto", "opentelemetry_sdk", "tracing-opentelemetry"], reason = "hive: cells import none of tracing or OpenTelemetry" },
+    { crate = "opentelemetry_sdk", wrappers = ["app", "opentelemetry-otlp", "opentelemetry-proto"], reason = "hive: cells import none of tracing or OpenTelemetry" },
+    { crate = "opentelemetry-otlp", wrappers = ["app"], reason = "hive: cells import none of tracing or OpenTelemetry" },
 ]
