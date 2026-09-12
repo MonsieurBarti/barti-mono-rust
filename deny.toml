@@ -1,3 +1,8 @@
+[advisories]
+ignore = [
+    { id = "RUSTSEC-2024-0436", reason = "utoipa-axum 0.2.0 depends on unmaintained paste; drop when the pin bumps to pastey" },
+]
+
 [bans]
 # Cell → app is a cargo error: app is bin-only, no lib target.
 # New cell: add `{ crate = "<name>", wrappers = ["app"], reason = "hive: only composition root depends on cells" }`.

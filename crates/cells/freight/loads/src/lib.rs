@@ -12,6 +12,7 @@ use crate::application::commands::create_load::CreateLoadCommand;
 use crate::infrastructure::load_events::InCellLoadEvents;
 use crate::infrastructure::load_store::SeaOrmLoadStore;
 use kernel::{Clock, Logger, Metrics};
+use utoipa_axum::router::OpenApiRouter;
 
 #[derive(Clone)]
 pub struct Loads<C, L, M> {
@@ -37,7 +38,7 @@ pub fn new<C: Clock, L: Logger, M: Metrics>(
     }
 }
 
-pub fn router<C, L, M>(cell: &Loads<C, L, M>) -> axum::Router
+pub fn router<C, L, M>(cell: &Loads<C, L, M>) -> OpenApiRouter
 where
     C: Clock + Clone + Send + Sync + 'static,
     L: Logger + Clone + Send + Sync + 'static,

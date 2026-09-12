@@ -2,10 +2,11 @@ use garde::Validate;
 use kernel::Violation;
 use serde::{Deserialize, Serialize};
 use std::future::Future;
+use utoipa::ToSchema;
 
 const PORT: &str = "createLoad";
 
-#[derive(Clone, Debug, Deserialize, Serialize, Validate)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema, Validate)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct CreateLoadInput {
     #[garde(length(min = 1))]
@@ -14,7 +15,7 @@ pub(crate) struct CreateLoadInput {
     pub(crate) stops: Vec<StopInput>,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, Validate)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema, Validate)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct StopInput {
     #[garde(skip)]
@@ -27,14 +28,14 @@ pub(crate) struct StopInput {
     pub(crate) address: AddressInput,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) enum StopKindPl {
     Pickup,
     Delivery,
 }
 
-#[derive(Clone, Debug, Deserialize, Serialize, Validate)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema, Validate)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub(crate) struct AddressInput {
     #[garde(length(min = 1))]
@@ -51,7 +52,7 @@ pub(crate) struct AddressInput {
     pub(crate) country: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct LoadResource {
     pub(crate) id: String,
@@ -60,7 +61,7 @@ pub(crate) struct LoadResource {
     pub(crate) created_at: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct StopResource {
     pub(crate) id: String,
@@ -71,7 +72,7 @@ pub(crate) struct StopResource {
     pub(crate) address: AddressResource,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct AddressResource {
     pub(crate) line1: String,
@@ -83,7 +84,7 @@ pub(crate) struct AddressResource {
     pub(crate) country: String,
 }
 
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize, ToSchema)]
 #[serde(rename_all = "camelCase")]
 pub(crate) struct ViolationDto {
     pub(crate) path: String,

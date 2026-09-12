@@ -31,4 +31,6 @@ tracing-opentelemetry = "0.33.0"
 opentelemetry = "0.32.0"
 opentelemetry_sdk = { version = "0.32.1", features = ["rt-tokio"] }
 opentelemetry-otlp = { version = "0.32.0", default-features = false, features = ["trace", "metrics", "http-proto", "reqwest-client"] }
+utoipa = "5.5.0"
+utoipa-axum = "0.2.0"
 

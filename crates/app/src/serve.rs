@@ -37,11 +37,14 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     let listener = TcpListener::bind(BIND).await?;
-    axum::serve(listener, http::router(loads::router(&loads)))
-        .with_graceful_shutdown(async {
-            let _ = tokio::signal::ctrl_c().await;
-        })
-        .await?;
+    axum::serve(
+        listener,
+        http::router(loads::router(&loads).split_for_parts().0),
+    )
+    .with_graceful_shutdown(async {
+        let _ = tokio::signal::ctrl_c().await;
+    })
+    .await?;
     drop(telemetry);
     Ok(())
 }
