@@ -21,6 +21,7 @@ Label: wayfinder:map
 - [Harden the compile wall](issues/02-harden-the-compile-wall.md) — unreachable_pub, clippy now(), deny per-cell comment; module-grain stays prose.
 - [Write the layer rules](issues/03-write-the-layer-rules.md) — nine rule files; layer MUST/NEVER plus AGENTS.md Hive law.
 - [Write the TTSR interrupts](issues/04-write-the-ttsr-interrupts.md) — four files; dropped tracing, now(), and runtime query().
+- [Write the ship-ticket skill and command](issues/05-ship-ticket-skill.md) — skill plus `/ship-ticket` prompt; one ticket through a PR.
 
 ## Not yet specified
 
