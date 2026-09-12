@@ -2,6 +2,8 @@
 
 Type: task
 Label: wayfinder:task
+Status: resolved
+
 Blocked by:
 
 ## Question
@@ -21,3 +23,16 @@ The skill takes a ticket path under `.scratch/<effort>/issues/NN-<slug>.md` and 
 The skill is a document for agents: `skill://writing-for-agents`. Name every command exactly. Name what the skill never does: merge, `--no-verify`, edit a law file, ship two tickets in one run.
 
 Acceptance: both files exist with valid frontmatter (`name` and `description` on the skill, `description` on the prompt); `/ship-ticket` appears in a fresh omp session; the skill body is under one hundred lines.
+
+## Answer
+
+`.omp/skills/ship-ticket/SKILL.md` and `.omp/prompts/ship-ticket.md`. Skill has `name` and `description`. Prompt has `description` and `$ARGUMENTS`. Empty path stops.
+
+Eight steps. After the CI gate, `skill://local-attack` runs on the ticket. Commands: `git fetch origin main`, `git worktree add -b <effort-short>/NN-<slug> ~/.omp/wt/barti-<effort-short>-NN origin/main`, the four CI commands, `cargo nextest run --workspace --profile db` when `docker compose ps postgres` shows running, `git push -u origin HEAD`, `gh pr create`. Guardrails: no merge, no `--no-verify`, no law-file edit, one ticket.
+
+`ttsr-sqlx` is now `ttsr-sea-orm`. Regex is `use\s+sea_orm\b|sea_orm::`. Kernel rule dropped `sqlx-free`.
+
+Self-review: `review-change` is not on this map yet. No reject against the Question. Warn: the db profile waits on boot 09. `local-attack` is not in this repo; the skill points at `skill://local-attack`.
+
+Gate: `cargo fmt --all -- --check`, `cargo clippy --workspace --all-targets -- -D warnings`, `cargo deny check bans`, `cargo nextest run --workspace` (67 passed, 1 skipped). Compose Postgres was down. Db lane skipped.
+
