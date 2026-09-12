@@ -1,0 +1,82 @@
+use crate::instant::Instant;
+use std::sync::{Mutex, MutexGuard};
+use time::OffsetDateTime;
+
+pub trait Clock: Send + Sync {
+    fn now(&self) -> Instant;
+}
+
+pub struct SystemClock;
+
+impl Clock for SystemClock {
+    fn now(&self) -> Instant {
+        Instant::from_utc(OffsetDateTime::now_utc())
+    }
+}
+
+pub struct FakeClock {
+    now: Mutex<Instant>,
+}
+
+impl FakeClock {
+    pub fn new(now: Instant) -> Self {
+        Self {
+            now: Mutex::new(now),
+        }
+    }
+
+    pub fn set(&self, now: Instant) {
+        *self.lock() = now;
+    }
+
+    pub fn now(&self) -> Instant {
+        *self.lock()
+    }
+
+    fn lock(&self) -> MutexGuard<'_, Instant> {
+        self.now
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+}
+
+impl Clock for FakeClock {
+    fn now(&self) -> Instant {
+        FakeClock::now(self)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{Clock, FakeClock, SystemClock};
+    use crate::instant::Instant;
+
+    fn t0() -> Instant {
+        Instant::from_unix_timestamp(1_700_000_000).unwrap()
+    }
+
+    #[test]
+    fn fake_clock_starts_at_the_given_instant() {
+        assert_eq!(FakeClock::new(t0()).now(), t0());
+    }
+
+    #[test]
+    fn fake_clock_set_changes_now() {
+        let clock = FakeClock::new(t0());
+        let later = t0().checked_add_seconds(1).unwrap();
+        clock.set(later);
+        assert_eq!(clock.now(), later);
+    }
+
+    #[test]
+    fn fake_clock_is_usable_as_clock() {
+        let clock = FakeClock::new(t0());
+        assert_eq!(Clock::now(&clock), t0());
+    }
+
+    #[test]
+    fn system_clock_is_a_clock() {
+        fn assert_clock<C: Clock>() {}
+        assert_clock::<SystemClock>();
+    }
+}

@@ -1,0 +1,13 @@
+[workspace]
+resolver = "3"
+members = ["crates/kernel", "crates/cells/*/*", "crates/app"]
+default-members = ["crates/app"]
+
+[workspace.package]
+edition = "2024"
+rust-version = "1.98.1"
+
+[workspace.dependencies]
+time = "0.3.55"
+kernel = { path = "crates/kernel" }
+loads = { path = "crates/cells/freight/loads" }
