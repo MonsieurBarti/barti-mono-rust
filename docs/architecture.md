@@ -15,6 +15,8 @@ Pin grain is majors. [ADR 0001](adr/0001-stack-pins.md) owns minors and patches.
 | rustc                  | 1.98         |
 | edition                | 2024         |
 | `axum`                 | 0.8          |
+| `utoipa`               | 5            |
+| `utoipa-axum`          | 0.2          |
 | `tokio`                | 1            |
 | `hyper`                | 1            |
 | `tower`                | 0.5          |
@@ -35,7 +37,7 @@ Pin grain is majors. [ADR 0001](adr/0001-stack-pins.md) owns minors and patches.
 
 Kernel depends on `time` only. It stays sqlx-free and sea-orm-free. Cells import none of `tracing`, OpenTelemetry, or a task-local crate.
 
-Not pinned: a JWT crate, a CQRS bus crate, a queue crate, a cron crate, an OpenAPI crate, a GraphQL crate, an MCP crate, testcontainers, mockall as law, `tonic`.
+Not pinned: a JWT crate, a CQRS bus crate, a queue crate, a cron crate, a GraphQL crate, an MCP crate, testcontainers, mockall as law, `tonic`.
 
 ## Out of scope
 
@@ -377,13 +379,23 @@ Public HTTP is REST on axum. GraphQL is not in this architecture. MCP is not in 
 
 ### Decision
 
-Cell `presentation/` depends on axum. Handlers live in `presentation/http/<use-case>/`. `lib.rs` re-exports `pub fn router` beside `new`. That function is not Open Host. `app/http.rs` nests and merges. Kernel stays axum-free. Cell tests hit that router with fake SPIs and never boot `app`. Cell name and domain folder are not path segments. A cell chooses its prefix. Collision is a review reject.
+Cell `presentation/` depends on axum. Handlers live in `presentation/http/<use-case>/`. `lib.rs` re-exports `pub fn router` as `utoipa_axum::router::OpenApiRouter` beside `new`. That function is not Open Host. Kernel stays axum-free. Cell tests hit that router with fake SPIs and never boot `app`. Cell name and domain folder are not path segments. A cell chooses its prefix. Collision is a review reject.
 
 Open Host stays cell-to-cell. A public REST handler may call a `pub(crate)` port. Tick, webhook, and any REST-only command other cells must not call stay `pub(crate)`.
 
 Handlers extract `actor_id` as a string. The body omits it. JSON deserializes into the Published Language struct. The port still `decode`s. Success is PL as `application/json`. The handler chooses 200, 201, or 204. 204 has no body. Success is never an envelope. No business logic. The token never enters the cell.
 
-Public paths are resources. Presentation maps verb plus path onto a use-case API port. No kebab use-case paths. No JSON:API. No `/v1` prefix. Additive JSON only. No pagination law. No OpenAPI crate pin.
+Public paths are resources. Presentation maps verb plus path onto a use-case API port. No kebab use-case paths. No JSON:API. No `/v1` prefix. Additive JSON only. No pagination law. Pin `utoipa` 5 and `utoipa-axum` 0.2. Exact versions live in [Stack pins](adr/0001-stack-pins.md). `utoipa` lives in `domain/api` and cell `presentation/`. `utoipa-axum` lives in cell `presentation/` only.
+
+Public REST uses `routes!(handler)` with no turbofish. Unpublished REST uses `OpenApiRouter::route`. It is served and absent from the spec. Public REST handlers carry `#[utoipa::path]`. Unpublished REST is not annotated. Published Language in `domain/api` derives `ToSchema` beside `Deserialize`, `Serialize`, and `Validate`. Envelope types do not derive `ToSchema`. The public error document is presentation's RFC 9457 `Problem`. `domain/entities`, `domain/spi`, and `application/` never name `utoipa`.
+
+`app` starts from `OpenApiRouter::with_openapi(AppApi::openapi())`. `AppApi` carries `info` and `servers`. `info.title` is `Barti Freight`. `info.version` is `0.1.0`. One `servers` entry: `url` is `/`. `app` `merge`s each cell router. It does not `nest`. It calls `split_for_parts()` once, then layers middleware on the axum `Router`. `GET /health` stays on that router and off the spec. Cells declare no `servers`. Starting the merge from `OpenApiRouter::new()` is forbidden.
+
+Operations are tagged with the cell name. Schema names and `operationId`s are unique across cells. Collision is a review reject. `Problem` is the one shared component name. Each cell presentation defines that type with chapter 8's fields. Merge is first-wins. After merge, `app` injects 401 and 500 onto every public operation. Cells document the statuses they choose.
+
+Consumers fetch `docs/openapi/openapi.json` from git at the ref they integrate against. The file is the one document `app` assembled. It is pretty JSON. Stable keys. A generator in `app` writes it. Nobody edits it by hand. Cell tags stay inside it. `app` does not serve it. GitHub Releases do not carry a copy. This process does not serve Swagger UI.
+
+Ignore `RUSTSEC-2024-0436` for transitive `paste` until the pin bumps to a pastey `utoipa-axum`. Do not set `unmaintained = "workspace"`. The inject mechanism is implementation. OpenAPI versioning and compatibility stay fog.
 
 Hide `context`. Cell presentation owns `type` → public string. `app` merges catalogs at boot. Unknown `type` is a generic string plus a server warn. Sensitive types stay generic. One composition-root suffix map, no per-cell override. Domain error carries no status.
 
