@@ -28,6 +28,9 @@ The repo matches [the locked spec](../hive-docs/spec.md). Handbook files, glossa
 - [Land the glossaries and context map](issues/04-land-glossaries.md) — CONTEXT-MAP.md and loads glossary from the spec fences; six loads terms left root ### Freight.
 - [Apply the OpenAPI law change](issues/05-apply-openapi-law.md) — chapter 8 and ADR 0001 take `utoipa` 5.5.0, `utoipa-axum` 0.2.0, and the four CI tool pins.
 - [Emit OpenAPI from loads presentation](issues/06-emit-openapi-from-loads.md) — `loads` `router` returns `OpenApiRouter`; PL `ToSchema`; `routes!(create_load)`; paste RUSTSEC ignored.
+- [Merge OpenAPI in app and write the document](issues/07-merge-and-write-openapi.md) — `app` merges from `AppApi`; extra bin writes `docs/openapi/openapi.json`.
+- [Inject 401 and 500 after merge](issues/08-inject-401-500.md) — walk merged `OpenApi`; `or_insert` 401 and 500 with `$ref` `Problem`.
+
 
 ## Not yet specified
 
