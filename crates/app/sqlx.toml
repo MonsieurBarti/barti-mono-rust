@@ -1,2 +1,0 @@
-[migrate]
-table-name = "loads._sqlx_migrations"

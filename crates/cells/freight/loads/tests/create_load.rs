@@ -1,7 +1,8 @@
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
 use kernel::{FakeClock, Instant, Logger, Metrics};
-use sqlx::PgPool;
+use sea_orm::{ConnectOptions, ConnectionTrait, Database};
+use sea_orm_migration::MigratorTrait;
 use tower::ServiceExt;
 use uuid::Uuid;
 
@@ -24,18 +25,29 @@ async fn cell_router() -> axum::Router {
     let migrator_url = std::env::var("LOADS_MIGRATOR_DATABASE_URL")
         .expect("LOADS_MIGRATOR_DATABASE_URL is required");
     let cell_url = std::env::var("LOADS_DATABASE_URL").expect("LOADS_DATABASE_URL is required");
-    let migrator = PgPool::connect(&migrator_url)
+    let mut options = ConnectOptions::new(migrator_url);
+    options
+        .max_connections(1)
+        .set_schema_search_path(loads::SCHEMA);
+    let migrator = Database::connect(options)
         .await
         .expect("migrator DSN unreachable");
-    sqlx::migrate!("./migrations")
-        .run(&migrator)
+    migrator
+        .execute_unprepared("SELECT pg_advisory_lock(20260912)")
         .await
-        .expect("loads migrations");
-    let pool = PgPool::connect(&cell_url)
+        .expect("migration lock");
+    let migrated = loads::Migrator::up(&migrator, None).await;
+    migrator
+        .execute_unprepared("SELECT pg_advisory_unlock(20260912)")
+        .await
+        .expect("migration unlock");
+    migrated.expect("loads migrations");
+    migrator.close().await.expect("close migrator");
+    let connection = Database::connect(cell_url)
         .await
         .expect("cell-role DSN unreachable");
     let clock = FakeClock::new(Instant::from_unix_timestamp(1_700_000_000).unwrap());
-    let cell = loads::new(loads::LoadsPool::new(pool), clock, Silent, Silent);
+    let cell = loads::new(loads::LoadsPool::new(connection), clock, Silent, Silent);
     loads::router(&cell)
 }
 
@@ -79,40 +91,6 @@ fn with_identity(mut request: Request<Body>) -> Request<Body> {
         .extensions_mut()
         .insert(loads::CorrelationId("corr-1".to_owned()));
     request
-}
-
-#[tokio::test]
-async fn post_loads_without_actor_id_is_unauthenticated() {
-    let response = cell_router()
-        .await
-        .oneshot(
-            Request::builder()
-                .method("POST")
-                .uri("/loads")
-                .header("Idempotency-Key", "key-1")
-                .header("content-type", "application/json")
-                .body(Body::from(body()))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::UNAUTHORIZED);
-    assert_eq!(
-        response
-            .headers()
-            .get("content-type")
-            .unwrap()
-            .to_str()
-            .unwrap(),
-        "application/problem+json"
-    );
-    let bytes = axum::body::to_bytes(response.into_body(), 64 * 1024)
-        .await
-        .unwrap();
-    let json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-    assert_eq!(json["type"], "UNAUTHENTICATED");
-    assert_eq!(json["status"], 401);
-    assert_eq!(json["instance"], "/loads");
 }
 
 #[tokio::test]

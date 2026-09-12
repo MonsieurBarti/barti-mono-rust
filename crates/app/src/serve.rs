@@ -2,8 +2,7 @@ use crate::env::ServeEnv;
 use crate::http;
 use crate::telemetry::{self, AppMetrics, TracingLogger};
 use kernel::{Clock, Logger, Metrics, SystemClock};
-use sqlx::PgPool;
-use sqlx::postgres::PgPoolOptions;
+use sea_orm::{ConnectOptions, Database};
 use tokio::net::TcpListener;
 
 pub(crate) const BIND: &str = "127.0.0.1:8080";
@@ -12,7 +11,11 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let telemetry = telemetry::init()?;
     let env = ServeEnv::from_get(|key| std::env::var(key).ok())?;
 
-    let loads_pool = loads_pool(&env.loads_database_url, env.loads_pool_max).await?;
+    let mut options = ConnectOptions::new(&env.loads_database_url);
+    options
+        .max_connections(env.loads_pool_max)
+        .sqlx_logging(false);
+    let loads_connection = Database::connect(options).await?;
     let clock = SystemClock;
     let logger = TracingLogger;
     let metrics = AppMetrics::new();
@@ -22,14 +25,16 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
             ("bind", BIND),
             ("source", "api"),
             ("startedAt", &format!("{:?}", clock.now())),
-            (
-                "loadsPoolSize",
-                &loads_pool.options().get_max_connections().to_string(),
-            ),
+            ("loadsPoolSize", &env.loads_pool_max.to_string()),
         ],
     );
     metrics.increment("hive.app.serve_started", 1, &[("cell", "loads")]);
-    let loads = loads::new(loads::LoadsPool::new(loads_pool), clock, logger, metrics);
+    let loads = loads::new(
+        loads::LoadsPool::new(loads_connection),
+        clock,
+        logger,
+        metrics,
+    );
 
     let listener = TcpListener::bind(BIND).await?;
     axum::serve(listener, http::router(loads::router(&loads)))
@@ -39,14 +44,6 @@ pub(crate) async fn run() -> Result<(), Box<dyn std::error::Error>> {
         .await?;
     drop(telemetry);
     Ok(())
-}
-
-/// The named pool for the `loads` cell. Never shared with another cell.
-async fn loads_pool(database_url: &str, pool_max: u32) -> Result<PgPool, sqlx::Error> {
-    PgPoolOptions::new()
-        .max_connections(pool_max)
-        .connect(database_url)
-        .await
 }
 
 #[cfg(test)]

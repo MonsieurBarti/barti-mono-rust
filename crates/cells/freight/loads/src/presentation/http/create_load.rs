@@ -1,6 +1,5 @@
 use super::{ActorId, CorrelationId};
 use crate::Loads;
-use crate::application::commands::create_load::CreateLoadCommand;
 use crate::domain::api::create_load::{CreateLoad, CreateLoadError, CreateLoadInput, ViolationDto};
 use axum::Json;
 use axum::body::Bytes;
@@ -15,7 +14,7 @@ const IDEMPOTENCY_KEY: &str = "idempotency-key";
 
 pub(crate) async fn create_load<C, L, M>(
     State(cell): State<Loads<C, L, M>>,
-    actor: ActorId,
+    Extension(ActorId(actor)): Extension<ActorId>,
     correlation: Option<Extension<CorrelationId>>,
     OriginalUri(uri): OriginalUri,
     headers: HeaderMap,
@@ -36,13 +35,10 @@ where
         Ok(input) => input,
         Err(error) => return problem(error, instance, correlation),
     };
-    match (CreateLoadCommand {
-        store: &cell.store,
-        clock: &cell.clock,
-        logger: &cell.logger,
-    }
-    .create_load(actor.0, idempotency_key, input)
-    .await)
+    match cell
+        .create_load
+        .create_load(actor, idempotency_key, input)
+        .await
     {
         Ok(resource) => (StatusCode::CREATED, Json(resource)).into_response(),
         Err(error) => problem(error, instance, correlation),

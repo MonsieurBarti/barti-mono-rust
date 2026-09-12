@@ -7,9 +7,6 @@ on:
 
 jobs:
   ci:
-    env:
-      SQLX_OFFLINE: "true"
-
     runs-on: ubuntu-latest
     permissions:
       contents: read
