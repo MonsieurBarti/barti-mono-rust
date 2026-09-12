@@ -10,14 +10,16 @@ use loads::{ActorId, CorrelationId};
 use std::time::Instant;
 use tower_http::catch_panic::CatchPanicLayer;
 use tracing::Instrument;
+use utoipa_axum::router::OpenApiRouter;
 use uuid::{Uuid, Version};
 
 const X_CORRELATION_ID: HeaderName = HeaderName::from_static("x-correlation-id");
 const X_ACTOR_ID: HeaderName = HeaderName::from_static("x-actor-id");
 const PROBLEM_JSON: &str = "application/problem+json";
 const SLOW_MS: u64 = 3000;
-pub(crate) fn router(loads: Router) -> Router {
-    layered(Router::new().route("/health", get(health)).merge(loads))
+pub(crate) fn router(loads: OpenApiRouter) -> Router {
+    let (router, _) = crate::openapi::merge(loads).split_for_parts();
+    layered(router.route("/health", get(health)))
 }
 
 fn layered(router: Router) -> Router {

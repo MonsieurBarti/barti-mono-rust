@@ -3,6 +3,7 @@ name = "app"
 version = "0.1.0"
 edition.workspace = true
 rust-version.workspace = true
+default-run = "app"
 
 [lints]
 workspace = true
@@ -23,6 +24,8 @@ tracing-opentelemetry.workspace = true
 opentelemetry.workspace = true
 opentelemetry_sdk.workspace = true
 opentelemetry-otlp.workspace = true
+utoipa.workspace = true
+utoipa-axum.workspace = true
 
 [dev-dependencies]
 tower.workspace = true

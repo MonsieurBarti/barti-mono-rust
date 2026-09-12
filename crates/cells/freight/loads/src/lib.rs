@@ -11,7 +11,8 @@ pub use crate::presentation::http::{ActorId, CorrelationId};
 use crate::application::commands::create_load::CreateLoadCommand;
 use crate::infrastructure::load_events::InCellLoadEvents;
 use crate::infrastructure::load_store::SeaOrmLoadStore;
-use kernel::{Clock, Logger, Metrics};
+use kernel::{Clock, Logger, Metrics, SystemClock};
+use utoipa::openapi::OpenApi;
 use utoipa_axum::router::OpenApiRouter;
 
 #[derive(Clone)]
@@ -45,4 +46,21 @@ where
     M: Metrics + Clone + Send + Sync + 'static,
 {
     presentation::http::router(cell)
+}
+
+pub fn openapi() -> OpenApi {
+    // ponytail: type params only; a pool is not required to collect routes!
+    #[derive(Clone, Copy)]
+    struct Silent;
+    impl Logger for Silent {
+        fn debug(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn info(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn warn(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+        fn error(&self, _msg: &str, _fields: &[(&str, &str)]) {}
+    }
+    impl Metrics for Silent {
+        fn increment(&self, _name: &str, _value: u64, _tags: &[(&str, &str)]) {}
+        fn distribution(&self, _name: &str, _value: f64, _tags: &[(&str, &str)]) {}
+    }
+    presentation::http::routes::<SystemClock, Silent, Silent>().into_openapi()
 }

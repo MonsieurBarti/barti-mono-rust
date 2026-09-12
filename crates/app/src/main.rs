@@ -1,6 +1,7 @@
 mod env;
 mod http;
 mod migrate;
+mod openapi;
 mod serve;
 mod telemetry;
 
