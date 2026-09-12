@@ -214,17 +214,9 @@ _Avoid_: one line per InProc hop, a health wide event, one line per GraphQL oper
 
 ### Freight
 
-**Load**:
-A Shipper's posted demand to move freight from origin to destination.
-_Avoid_: Order, job, tender as this noun, Shipment
-
 **Shipment**:
 The contracted move after a Load is booked with a Carrier.
 _Avoid_: Load, Booking as an aggregate
-
-**Quote**:
-A Carrier's priced offer on a Load.
-_Avoid_: Bid, Rate as this noun, a shipper-facing quote aggregate
 
 **CustomerRate**:
 The Money the Shipper pays, locked on the Shipment at book. Not an aggregate.
@@ -241,19 +233,3 @@ _Avoid_: Bill, Settlement as this noun, Payable
 **Payable**:
 An amount owed to the Carrier for a Shipment, at CarrierRate.
 _Avoid_: Payout, Invoice, Settlement as this noun
-
-**Shipper**:
-The party that posts a Load.
-_Avoid_: Customer, client, account
-
-**Carrier**:
-The party that hauls a Shipment.
-_Avoid_: Trucker, vendor, supplier
-
-**Consignee**:
-The receiving name and address on a destination stop. Not a party with identity.
-_Avoid_: Consignee aggregate, treating Consignee as a Shipper
-
-**Stop**:
-A pickup or delivery location on a Load. First cut is two.
-_Avoid_: Leg, unstructured origin and destination fields
