@@ -44,7 +44,7 @@ Skip a file with no glob. Read the rule and every ADR it links. Each finding nam
 
 ### Ticket
 
-Branch or `headRefName` `<effort-short>/NN-<slug>`: `hive-law` → `.scratch/hive-law/issues/NN-<slug>.md`; `hive-boot` → `.scratch/rust-hive-boot/issues/NN-<slug>.md`. Also read a `.scratch/.../issues/` path in the PR body.
+Branch or `headRefName` `<effort-short>/NN-<slug>`: `hive-law` → `.scratch/hive-law/issues/NN-<slug>.md`; `hive-boot` → `.scratch/rust-hive-boot/issues/NN-<slug>.md`; `docs-land` → `.scratch/hive-docs-land/issues/NN-<slug>.md`. Also read a `.scratch/.../issues/` path in the PR body.
 
 Read `## Question`. The diff does what it asks and nothing it forbids. A missed ask anchors on that ticket line.
 
