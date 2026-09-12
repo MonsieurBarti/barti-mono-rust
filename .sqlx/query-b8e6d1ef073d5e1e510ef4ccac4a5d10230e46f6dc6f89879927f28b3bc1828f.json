@@ -1,0 +1,24 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n            INSERT INTO loads.stop (\n                id, load_id, kind, date, name, line1, line2, city, region, postal_code, country\n            )\n            VALUES (\n                $1,\n                $2,\n                $3,\n                to_date($4, 'YYYY-MM-DD'),\n                $5,\n                $6,\n                $7,\n                $8,\n                $9,\n                $10,\n                $11\n            )\n            ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Uuid",
+        "Uuid",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b8e6d1ef073d5e1e510ef4ccac4a5d10230e46f6dc6f89879927f28b3bc1828f"
+}

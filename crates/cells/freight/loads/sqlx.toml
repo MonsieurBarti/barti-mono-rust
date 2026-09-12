@@ -1,2 +1,5 @@
 [common]
 database-url-var = "LOADS_DATABASE_URL"
+
+[migrate]
+table-name = "loads._sqlx_migrations"
