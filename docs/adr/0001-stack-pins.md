@@ -11,6 +11,8 @@ Hive law pins exact crate and tool versions here. `docs/architecture.md` restate
 | rustc | 1.98.1 | workspace |
 | edition | 2024 | workspace |
 | `axum` | 0.8.9 | `app`, cell `presentation/` |
+| `utoipa` | 5.5.0 | `domain/api`, cell `presentation/` |
+| `utoipa-axum` | 0.2.0 | cell `presentation/` only |
 | `tokio` | 1.53.1 | `app`, ticks, drains |
 | `hyper` | 1.11.1 | with axum |
 | `tower` | 0.5.3 | with axum |
@@ -34,6 +36,10 @@ Hive law pins exact crate and tool versions here. `docs/architecture.md` restate
 | `cargo-deny` | 0.20.2 | import wall |
 | `cargo-nextest` | 0.9.144 | `cargo nextest run` |
 | `cargo-llvm-cov` | 0.9.1 | 80% line per cell |
+| oasdiff | 1.31.0 | CI |
+| oasdiff-action | v0.1.15 | CI |
+| lychee | 0.24.2 | CI |
+| lychee-action | v2.9.0 | CI |
 
 Kernel depends on `time` only. Kernel is sqlx-free and sea-orm-free. Cells import none of `tracing`, OpenTelemetry, or a task-local crate. Cell e2e never boots `app`.
 
@@ -41,7 +47,7 @@ Kernel depends on `time` only. Kernel is sqlx-free and sea-orm-free. Cells impor
 
 No JWT crate. This process copies gateway identity headers. It does not validate human Bearer JWTs.
 
-No CQRS bus crate. No queue crate. No cron crate. No OpenAPI crate. No GraphQL crate. No MCP crate. No testcontainers. mockall is not law.
+No CQRS bus crate. No queue crate. No cron crate. No GraphQL crate. No MCP crate. No testcontainers. mockall is not law.
 
 `tonic` stays off until a cell needs gRPC.
 
