@@ -20,6 +20,7 @@ Label: wayfinder:map
 - [Write ADRs 0002 through 0017](issues/01-write-adrs.md) — one ADR per chapter; each Grill line links it.
 - [Harden the compile wall](issues/02-harden-the-compile-wall.md) — unreachable_pub, clippy now(), deny per-cell comment; module-grain stays prose.
 - [Write the layer rules](issues/03-write-the-layer-rules.md) — nine rule files; layer MUST/NEVER plus AGENTS.md Hive law.
+- [Write the TTSR interrupts](issues/04-write-the-ttsr-interrupts.md) — four files; dropped tracing, now(), and runtime query().
 
 ## Not yet specified
 
